@@ -4,13 +4,13 @@
 anything from the renderer package pulls in Pillow, and :mod:`run_clock`,
 :mod:`runtime_state`, :mod:`runtime_theme`, :mod:`runtime_actions` and
 :mod:`web_server` need the names without it: for ``--theme`` choices, to
-validate persisted manual themes, and to drive the button-B / web cycle.
+validate persisted manual themes, and to drive the button-A / web cycle.
 ``render_quote.theme_tables`` re-exports both constants, so ``rq.THEME_ORDER``
 reads are unchanged.
 """
 from __future__ import annotations
 
-# Every registered theme, in button-B / web-dropdown cycle order. This is the
+# Every registered theme, in button-A / web-dropdown cycle order. This is the
 # one literal list of theme names: ``run_clock``'s ``--theme`` choices and the
 # renderer (``render_quote.THEME_ORDER``, re-exported by ``theme_tables``) both
 # read it from here. Every name must also be a key in ``render_quote.THEMES``
@@ -107,11 +107,35 @@ THEME_ORDER: tuple[str, ...] = (
     "imprimatur",
     "diags",
 )
-# Themes registered in THEMES but excluded from every rotation (button B, web
+# Themes registered in THEMES but excluded from every rotation (button A, web
 # dropdown, auto, random); reachable only via explicit `--theme NAME`.
 # RANDOM_EXCLUDED_THEMES filters only --theme random. Use this for themes worth
 # keeping as opt-in but not ready for unattended rotation.
 CYCLE_EXCLUDED_THEMES: frozenset[str] = frozenset()
+
+
+# Themes whose frame draws the time it is given: an hour carrier (a numeral, a
+# camera number, a due stamp) or HH:MM on an object that is a clock. Every
+# other theme renders the same frame at any time. Idle Weather leaves these
+# out unless it has judged the time decoration rather than a clock, since its
+# frames stay on the panel for half an hour.
+# tests/test_render_golden.py renders every theme at two times and fails if
+# this list is wrong in either direction.
+TIME_SURFACE_THEMES: frozenset[str] = frozenset({
+    "abyssal", "atropos", "bakelite", "beksinski", "betweenus", "betweenus_dark", "biomech", "bladerunner",
+    "cardcatalog", "codex", "culture", "diags", "dsky", "expanse", "expedition", "gantry", "hades", "hal",
+    "hippochomp", "hitchhiker", "izakaya", "lasvegas", "lieder", "lumon", "metro", "oblivion", "observation",
+    "orbital", "plaque", "platform", "pourjudgment", "pulp", "reactornight", "saros", "semiotic", "synoptic",
+    "tarot", "traumateam", "trisolaris", "vhs", "vitrail", "witcher", "yorha",
+})
+
+# Themes whose furniture prints the Idle Hours name (an imprint, a maker's
+# line, a header). Nothing excludes these today: Idle Weather keeps them, the
+# name reading as a maker's mark. tests/test_render_golden.py
+# fails if a theme module carries the name and is not listed here.
+BRANDED_THEMES: frozenset[str] = frozenset({
+    "astrarium", "bakelite", "cardcatalog", "circuit", "diags", "lieder", "metro", "pulp", "sampler",
+})
 
 
 def known_theme_names() -> frozenset[str]:
@@ -120,14 +144,14 @@ def known_theme_names() -> frozenset[str]:
     Used to validate persisted manual-theme values and gate
     ``resolve_effective_theme`` overrides. Membership-style lookups; order
     does not matter (use :func:`theme_cycle` when you need the curated
-    button-B / web-dropdown ordering). Equal to ``render_quote.THEMES``'s
+    button-A / web-dropdown ordering). Equal to ``render_quote.THEMES``'s
     keys; ``set(THEME_ORDER) == set(THEMES)`` is fenced in tests.
     """
     return frozenset(THEME_ORDER)
 
 
 def theme_cycle() -> tuple[str, ...]:
-    """Curated order for button-B / web-dropdown theme advancement.
+    """Curated order for button-A / web-dropdown theme advancement.
 
     ``THEME_ORDER`` minus ``CYCLE_EXCLUDED_THEMES``, so a theme can stay
     registered (and reachable via explicit ``--theme NAME``) while being
