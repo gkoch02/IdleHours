@@ -59,12 +59,14 @@ def _normalize_candidates(candidates) -> tuple:
 def load_font(candidates: list, size: int):
     """Load the first reachable TrueType font in ``candidates``, memoized.
 
-    Each entry is a path string or a ``(path, variation_name)`` tuple; for
-    the tuple form ``set_variation_by_name`` selects the named instance. This
-    is load-bearing for variable fonts whose default instance is Thin (e.g.
-    Bitter). A variation name the file doesn't expose silently falls back to
-    the default instance; the next candidate is tried only if the file is
-    missing or unreadable.
+    Each entry is a path string or a ``(path, variation)`` tuple. A string
+    variation names an instance (``set_variation_by_name``); a tuple of
+    numbers sets every axis in the file's own order (``set_variation_by_axes``),
+    for a cut no named instance gives, such as Saira condensed. This is
+    load-bearing for variable fonts whose default instance is Thin (e.g.
+    Bitter). A variation the file doesn't accept silently falls back to the
+    default instance; the next candidate is tried only if the file is missing
+    or unreadable.
 
     Cached per process on ``(normalised_candidates, size)`` — ``fit_quote``
     calls this many times per render with the same chain at different sizes.
@@ -89,7 +91,10 @@ def load_font(candidates: list, size: int):
             continue
         if variation:
             try:
-                font.set_variation_by_name(variation)
+                if isinstance(variation, tuple):
+                    font.set_variation_by_axes(list(variation))
+                else:
+                    font.set_variation_by_name(variation)
             except (OSError, ValueError, AttributeError):
                 pass
         _FONT_CACHE[cache_key] = font

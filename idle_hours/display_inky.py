@@ -56,6 +56,7 @@ THEME_SATURATION: dict[str, float] = {
     "redacted": 0.5,
     "roman": 0.5,
     "saloon": 0.5,
+    "seneschal_light": 0.5,
     "sampler": 0.5,
     "synoptic": 0.5,
     "tarot": 0.5,
@@ -109,6 +110,7 @@ THEME_SATURATION: dict[str, float] = {
     "pulp": 0.7,
     "questline": 0.7,
     "reactornight": 0.7,
+    "seneschal": 0.7,
     "saros": 0.7,
     "semiotic": 0.7,  # the frame paints a black bulkhead over the white page ground
     "splitflap": 0.7,

@@ -69,6 +69,8 @@ THEME_ORDER: tuple[str, ...] = (
     "hippochomp",
     "pourjudgment",
     "reactornight",
+    "seneschal",
+    "seneschal_light",
     "carcosa",
     "control",
     "observation",

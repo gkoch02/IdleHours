@@ -38,6 +38,7 @@ LAYERS = (
     "spec",
     "themes._shared",
     "themes._culture_common",
+    "themes._seneschal_common",
     "registry",
     "core",
 )

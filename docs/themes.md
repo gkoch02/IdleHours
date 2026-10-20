@@ -55,7 +55,7 @@ Every face the renderer sets ships under `idle_hours/fonts/` as package data, on
 | `libre-franklin/` | OFL.txt | `furies` | — |
 | `lumen/` | OFL.txt | `gantry`, `platform` | — |
 | `medieval-sharp/` | OFL.txt | `alchemy` | `vitrail` |
-| `michroma/` | OFL.txt | `atropos`, `saros`, `hal`, `lumon`, `hitchhiker` | — |
+| `michroma/` | OFL.txt | `seneschal`, `seneschal_light`, `atropos`, `saros`, `hal`, `lumon`, `hitchhiker` | — |
 | `montserrat/` | OFL.txt | `lumon` | — |
 | `noto-music/` | OFL.txt | `lieder` | — |
 | `old-standard-tt/` | OFL.txt | `newsprint`, `beksinski` | — |
@@ -71,7 +71,7 @@ Every face the renderer sets ships under `idle_hours/fonts/` as package data, on
 | `quicksand/` | OFL.txt | `izakaya` | — |
 | `righteous/` | OFL.txt | `deco` | — |
 | `rye/` | OFL.txt | `saloon` | — |
-| `saira/` | OFL.txt | `atropos`, `saros` | — |
+| `saira/` | OFL.txt | `seneschal`, `seneschal_light`, `atropos`, `saros` | — |
 | `share-tech-mono/` | OFL.txt | `reactornight`, `culture`, `orbital`, `expanse`, `lasvegas`, `bladerunner` | — |
 | `shojumaru/` | OFL.txt | `chanbara` | — |
 | `silkscreen/` | OFL.txt | `sampler` | — |
@@ -911,6 +911,28 @@ Imports `pick_quote` in-process (`pick_quote_module.select_quote`) and lays out 
     **Tried and rejected.**
     - *Green nixie cores in solid green ink*: the panel's green is a dark forest that all but vanishes on the glass.
     - *The APPROX lamp* the TV lights when the picker fell back to a neighbouring bucket: the frame cannot tell, since it is handed the row and the time, not the pick; the lamp became STANDBY.
+  - `seneschal` / `seneschal_light` (the **Seneschal** app's main screen) — the PlumpBug HomeKit switchboard, whose whole look is a navy HUD of gold outlines, condensed tracked caps and tiles with one corner cut at 45°, and whose daylight panel is a pale grey where off sits flush and on is pressed in and filled. The quote is the one thing on.
+
+    **Why it fits.** The frame is the app's screen with the household taken out. The wordmark and gear head it; the check line says ALL AS EXPECTED with the app's seal; On Now counts one and offers All Off; its one panel is lit, the bulb glyph at its head, the quote in it, and the byline in tracked caps where the app writes a row's room and state. Below, an Hours strip of twelve same-height cells (the app's "1U" rows) lights the hour. Every shape is the app's: the bevelled corner, and the gear, power mark, seal and bulb drawn from its 24-unit glyph grid with square-ended strokes.
+
+    **Colourways.** The lit colour is one of the app's six, taken by the hour round the face (`_seneschal_accent`): twelve and six gold, one and seven ember, then crimson, phosphor, teal and violet. Gold, crimson and phosphor are the yellow, red and green inks; ember is red with yellow at 3/8, teal green and blue at 1/2, violet blue with red at 2/5, each split on one read of the tile so the hue holds down a bloom. The TV's port (IdleHoursTV `seneschal`, `seneschallight`) uses the same table.
+
+    **Dark** (`seneschal`). The navy is black with blue stippled in on `BAYER_8x8` (13% rising to 30% in a haze at the top, falling into a vignette), every third row left black for the app's scanlines; painted once per process. Lit is an outline of the accent in a `paint_neon_mask` bloom held to the ground, a faint wash of it inside fading to the right (14% at the left edge), and a solid marker down the left. Hot text (the phrase, the wordmark, the lit hour's number, the bulb) is the app's brighter "hot" form: yellow's own ink, or a white core with 30% of the accent's ink in an accent bloom, since red, green and blue alone read as unlit on black (the `reactornight` finding). The prose and the chrome are solid white; the byline is white (yellow under gold), as small caps in the darker inks are dim and a stipple shreds them. Unlit cells are black wells with a blue edge.
+
+    **Light** (`seneschal_light`). The panel's white ink is itself a cool pale grey, which is the app's daylight panel. Lit is the accent stippled over the white (a quarter, three-eighths for yellow) with a pressed-in shadow inside along the top and left (black at 3/4, 1/2, 1/4 and 1/8 over four rows); the lit hour's cell is filled solid. The phrase and the bulb take the accent deep, as the app does on its light panel: the darker inks as they are (the mixes as their two-ink stipple), gold as black with a quarter of yellow. Off is flush, with a dotted grey hairline.
+
+    **Time surfaces.** The lit hour and the colour are the only time carriers, both hour-only through `_clock_hour12`, so a frame is byte-identical across an hour's minutes and across a twelve-hour pair. The app's check line carries a time ("checked 12:21 AM"); here it does not.
+
+    **Its own sleep frame** (`render_seneschal_sleep`, `render_seneschal_light_sleep`): All Off has run. On Now reads 0, its panel is unlit, and the note in it reads "Everything is off for the night. The lights come back on in the morning." No hour is lit; the wordmark stays gold.
+
+    **Two modules over one.** A frame spec is not told which theme it draws, so each look is a thin module (`seneschal`, `seneschal_light`) over `themes/_seneschal_common`, the `_culture_common` arrangement. `seneschal_light` paints through its own `_seneschal_light_paint_screen` so the decoration fence has a helper to neuter.
+
+    **Tests.** `tests/test_render_quote_themes.py::TestSeneschalFrame` pins the registration, the hour's colour, the lit cell in its colour in both looks, the grounds, the byte-identity across an hour's minutes, and the condensed Saira; `TestSeneschalSleepFrame` pins the sleep frame.
+
+    **Tried and rejected.**
+    - *The app's lit fill as the light panel's whole quote panel*, solid: a screen-sized slab of colour, and the prose on solid red, green or blue does not read. The wash keeps it a tint; the solid fill stays on the hour's cell, button-sized as in the app.
+    - *Grey interface text* (the app's muted blue-grey) as a white and blue stipple: it shreds at 15 px. The chrome is solid white or black.
+    - *A rule of the accent under the dark byline*: it read as an underlined first letter.
   - `carcosa` (black night / white Almendra body / solid-yellow matched phrase) — **The King in Yellow**, Robert W. Chambers, 1895, staged as the play itself, after *Cassilda's Song* ("Along the shore the cloud waves break, / The twin suns sink behind the lake, / The shadows lengthen / In Carcosa. / Strange is the night where black stars rise, / And strange moons circle through the skies").
 
     **A literary-layout theme** with a heavy `draw_carcosa_border` painter, no `clear_rect` knockout: the decoration keeps to the margins the shared layout leaves free.
@@ -1626,6 +1648,7 @@ Imports `pick_quote` in-process (`pick_quote_module.select_quote`) and lays out 
     **The matched phrase is the italic cut, not a bold.** Regular for the body; "say *what you want.*" is the app's own gesture, and the accent colour plus the roman/italic split carry the differentiation (the `cartograph` move) — Italic 400 in light, where it paints solid, and SemiBold Italic in dark so the amber stipple has stroke mass to live in. The italic chain falls back through the system serif italics before the Playfair bold chain so a missing install still lands on a slanted serif rather than an upright one.
   - `hippochomp` uses **Bricolage Grotesque** (Mathieu Triay, OFL) — the heading face of HippoChomp's marketing page (the app itself sets its one numeral in Arial Rounded MT Bold, which is not redistributable). A variable grotesque with optical-size, width and weight axes whose ink traps and soft terminals read as friendly without being a toy face, which a whole quote needs. **The file's default axis instance is ExtraBold**, so every candidate pins a named instance: Regular for the body, ExtraBold for the phrase and the wordmark.
   - `reactornight` uses **Share Tech Mono** (already bundled), the face the Nightdraft design prototype set its nixie digits in, for the quote and every readout in the tube: one weight, so the phrase differs by its amber. The legends, the header and the byline plate are **Jost** Bold and Medium in tracked capitals, standing in for the app's geometric label face.
+  - `seneschal` / `seneschal_light` use **Saira** and **Michroma** (both already bundled), the app's own pair. Saira Medium is the body and Bold the phrase; the interface caps are Saira condensed (weight 600 or 700, width 72), which no named instance gives, so the frame loads it by axis values (`load_font` takes a tuple of numbers for a variation). Michroma is the wordmark.
   - `pourjudgment` uses **Bodoni Moda** (Owen Earl, OFL) — the Pour Judgment app's Didone, bundled as the app bundles it: static cuts of the text optical size (opsz 14), Medium (the app's "regular") for the body and SemiBold for the phrase and the masthead. The small tracked capitals use the already-bundled **Jost** (Medium), the app's sans. The app switches to Bodoni's caption cut below 16 pt; the renderer's attribution shares the body face, so the caption cut is not bundled, and the attribution's hairlines are kept whole by setting it on flat red rather than a stipple.
   - `carcosa` uses **Almendra** (Ana Sanfelippo, OFL) — a calligraphic book face whose pen-cut wedges and faintly unsettled rhythm read as fin-de-siècle Decadent printing, the register of Chambers's 1895 first edition; it also sets the historical long-s `ſt` ligature, which suits a book that should not be read.
 
@@ -1823,6 +1846,8 @@ Spectra 6 only has six inks (white / black / red / yellow / blue / green). Any o
 | Cream | yellow + white at 1/2 : 1/2 | `dark=yellow, light=white` | `dispatch` (Layer 0 ground wash); `gothic` (mid-edge border diamonds — candle-flicker warmth); `deco` (rising-sun fan inner rays — 2-tone gradient post-pass flips remaining red to white near the centre dot, simulating a true sunburst's bright core); `astrarium` / `lieder` (Layer 0 ground washes — same recipe reused via `_astrarium_paint_cream_wash`; on `lieder` it is what makes the page read as warm manuscript stock rather than the panel's flat white); `tarot` (reading cartouche via `_tarot_paint_body_panel`, card stock via `_tarot_paint_card_stock`, and the cloth's own base layer in `_tarot_paint_vellum`); `betweenus_dark` (the "Curious" legend dot — the app's pale-gold dark `curious`) |
 | Warm off-white | white + yellow at about 15 : 1, scattered | `position_noise(x, y) < 16` picks the yellow pixels: a hash scatter, since an ordered 1-in-4 lattice at this ink pair reads as mustard on the panel | `splitflap` (the wall behind the board) |
 | Navy | blue + black at 1/2 : 1/2 | `dark=blue, light=black` | `bauhaus` (matched phrase — tighter-contrast deeper-blue against the newly-yellow BL corner triangle); `vitrail` (navy "deep glass" pane); `saros` (the cold haze on the horizon left of the sun — a blue channel of at most 24/255 painted into the continuous-tone sky and diffusion-dithered, so it lands as this pair at under a tenth blue) |
+| Seneschal's navy | black + blue, 13% rising to 30% blue in a haze at the top and falling into a vignette, every third row black | one `BAYER_8x8` compare against a density field (`_bayer_threshold_field`), times a scanline mask | `seneschal` (the ground) |
+| Ember / teal / violet glow | red + yellow at 5/8 : 3/8; green + blue at 1/2 : 1/2; blue + red at 3/5 : 2/5 | `paint_neon_mask(glow=major, glow_minor=minor, glow_minor_share=…)`, and the same split on one `BAYER_8x8` read for a wash | `seneschal`, `seneschal_light` (the hour's lit colour) |
 | Umber / dust haze (error-diffused) | the haze: white + yellow with a black grain; the plain: red + black with a yellow fleck — no fixed ratio, Floyd–Steinberg against the calibrated inks | `_dither_calibrated` over a continuous-tone scene restricted to black / red / yellow / white | `beksinski` (the whole ground — Beksiński's ochre skies and umber plains; green was tried for the umber, the textbook R+G sepia, and came out of the quantiser as red-and-green confetti on the plain, so the theme admits neither green nor blue) |
 | Maroon | red + black at 1/2 : 1/2 | `dark=red, light=black` | `dispatch` (rubber-stamp imprint); `gothic` (corner quatrefoil lobes); `chanbara` (rising-sun disc rim + chop seal) |
 | Leather (warm black) | black + red at about 25 : 1, scattered | `position_noise(x, y) < 10` picks the red pixels | `pourjudgment` (the app's leather ground #17100D; its brass `LineStrong` hairlines (#C8A44D at 34%) put yellow on every fourth pixel of a 1 px line and red two after it) |
