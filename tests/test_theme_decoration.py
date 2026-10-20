@@ -105,6 +105,8 @@ CUSTOM_FRAME_THEMES = (
     "lumon",
     "dsky",
     "reactornight",
+    "seneschal",
+    "seneschal_light",
     "oblivion",
     "yorha",
     "hitchhiker",

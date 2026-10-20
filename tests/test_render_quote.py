@@ -452,6 +452,19 @@ class TestLoadFontFallback:
         # silently fell through, both widths would be identical.
         assert (bbbox[2] - bbbox[0]) > (rbbox[2] - rbbox[0])
 
+    def test_axis_values_candidate_sets_every_axis(self):
+        """A ``(path, (axis, ...))`` candidate sets the axes by value, in the
+        file's order, for a cut no named instance gives: Saira's named
+        instances are all full width, so its condensed cut (``seneschal``'s
+        interface caps) must come out narrower than the same weight's
+        instance, and differ from the Regular weight's width too."""
+        saira = str(Path(rq.BASE_DIR) / "fonts" / "saira" / "Saira[wdth,wght].ttf")
+        full = rq.load_font([(saira, "SemiBold")], size=60)
+        condensed = rq.load_font([(saira, (600, 72))], size=60)
+        draw = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+        assert draw.textlength("CONDENSED", font=condensed) < 0.85 * draw.textlength("CONDENSED", font=full)
+        assert rq.load_font([(saira, (600, 72))], size=60) is condensed
+
     def test_variation_tuple_missing_file_falls_through(self, monkeypatch, capsys):
         """A missing file referenced in a variation tuple falls through to the
         next candidate, exactly like a bare-path candidate would."""

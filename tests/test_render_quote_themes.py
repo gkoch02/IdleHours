@@ -9020,6 +9020,90 @@ class TestReactorNightSleepFrame:
         assert pixel_bytes(image) == pixel_bytes(self._render(time_str="03:41"))
 
 
+class TestSeneschalFrame:
+    """``seneschal`` / ``seneschal_light`` — Seneschal's main screen: the quote
+    in On Now's lit panel, the hour lit in the Hours strip, the lit colour the
+    hour's, in the app's dark HUD and its daylight panel."""
+
+    THEMES = ("seneschal", "seneschal_light")
+    ROW = TestHalFrame.ROW
+
+    @classmethod
+    def _render(cls, theme, time_str="14:30", row=None):
+        return rq.render(time_str, make_row(**(row or cls.ROW)), 800, 480, mode="production", theme=theme)
+
+    @staticmethod
+    def _cell(image, hour):
+        x0, y0, x1, y1 = rq._seneschal_cells()[hour - 1]
+        return ink_counts(image.crop((x0 + 4, y0 + 4, x1 - 8, y1 - 4)))
+
+    def test_registered_everywhere(self):
+        from idle_hours import display_inky
+        renders = {"seneschal": rq.render_seneschal_frame, "seneschal_light": rq.render_seneschal_light_frame}
+        for theme in self.THEMES:
+            assert theme in rq.THEMES and theme in rq.THEME_ORDER
+            assert theme not in rq.CYCLE_EXCLUDED_THEMES
+            assert rq.FRAME_SPECS[theme].render is renders[theme]
+            assert rq.FRAME_SPECS[theme].sleep is not None
+        assert display_inky.THEME_SATURATION["seneschal"] == 0.7
+        assert display_inky.THEME_SATURATION["seneschal_light"] == 0.5
+
+    def test_on_palette_and_deterministic(self):
+        for theme in self.THEMES:
+            image = self._render(theme)
+            assert distinct_inks(image) <= set(rq.SPECTRA6.values())
+            assert pixel_bytes(image) == pixel_bytes(self._render(theme))
+
+    def test_the_hour_takes_the_apps_colours_round_the_face(self):
+        names = [rq._seneschal_accent(hour).name for hour in range(1, 13)]
+        assert names[:6] == ["ember", "crimson", "phosphor", "teal", "violet", "gold"]
+        assert names[6:] == names[:6]
+        assert rq._seneschal_accent(12).name == "gold"
+
+    def test_the_hours_cell_is_lit_in_its_colour(self):
+        yellow, red = rq.SPECTRA6["yellow"], rq.SPECTRA6["red"]
+        # Light: the lit cell is filled; noon is gold, two o'clock crimson.
+        noon, two = self._render("seneschal_light", "12:10"), self._render("seneschal_light", "14:10")
+        assert self._cell(noon, 12).get(yellow, 0) > 100 and self._cell(noon, 2).get(yellow, 0) == 0
+        assert self._cell(two, 2).get(red, 0) > 100 and self._cell(two, 12).get(red, 0) == 0
+        # Dark: the lit cell's number blooms in the accent; the others carry none of it.
+        dark = self._render("seneschal", "12:10")
+        assert self._cell(dark, 12).get(yellow, 0) > 0 and self._cell(dark, 5).get(yellow, 0) == 0
+
+    def test_grounds(self):
+        dark, light = self._render("seneschal"), self._render("seneschal_light")
+        corner = (0, 0, 40, 40)
+        assert set(ink_counts(dark.crop(corner))) <= {rq.SPECTRA6["black"], rq.SPECTRA6["blue"]}
+        assert set(ink_counts(light.crop(corner))) == {rq.SPECTRA6["white"]}
+
+    def test_pinned_across_the_minutes_of_an_hour(self):
+        for theme in self.THEMES:
+            a = self._render(theme, "09:00")
+            for time_str in ("09:05", "09:33", "09:59"):
+                assert pixel_bytes(self._render(theme, time_str)) == pixel_bytes(a)
+            assert pixel_bytes(self._render(theme, "10:00")) != pixel_bytes(a)
+            # Only the twelve-hour hour shows: 21:00 is 9:00's frame.
+            assert pixel_bytes(self._render(theme, "21:00")) == pixel_bytes(a)
+
+    def test_the_interface_caps_are_saira_condensed(self):
+        draw = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+        full = rq.load_font([(rq.SAIRA_VARIABLE, "SemiBold")], size=30)
+        assert draw.textlength("ON NOW", font=rq._seneschal_cond(30)) < 0.85 * draw.textlength("ON NOW", font=full)
+
+
+class TestSeneschalSleepFrame:
+    """The quiet-hours frame: All Off has run, so On Now is empty and no hour is lit."""
+
+    def test_nothing_is_lit(self):
+        for theme in TestSeneschalFrame.THEMES:
+            image = rq.FRAME_SPECS[theme].sleep("21:00", 800, 480)
+            assert distinct_inks(image) <= set(rq.SPECTRA6.values())
+            for hour in range(1, 13):
+                cell = TestSeneschalFrame._cell(image, hour)
+                assert not set(cell) - {rq.SPECTRA6["black"], rq.SPECTRA6["white"], rq.SPECTRA6["blue"]}, hour
+            assert pixel_bytes(image) == pixel_bytes(rq.FRAME_SPECS[theme].sleep("08:00", 800, 480))
+
+
 class TestDskySleepFrame:
     """``dsky``'s own sleep frame: the computer put to bed for the crew's rest
     period, STBY lit and P06's VERB 50 NOUN 25 on the display, with the

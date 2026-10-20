@@ -5,7 +5,7 @@ holds the order): ``_paths`` (font files and fallback chains), ``clock`` (the
 wall-clock seam), ``palette``, ``theme_tables`` (each theme's colours, fonts
 and text flags), ``fonts``, ``layout``, ``text``, ``primitives``, ``furniture``
 and ``spec`` (what a theme declares), then ``themes._shared`` and
-``themes._culture_common`` (code several themes use), one module per theme
+``themes._culture_common`` and ``themes._seneschal_common`` (code several themes use), one module per theme
 under ``themes/``, ``registry`` (the dispatch tables, built from each theme's
 ``SPEC``) and ``core`` (``render``, the sleep and source-card frames and the
 command line). Issue #335 split it out of one 34,000-line module;
@@ -36,6 +36,7 @@ from . import (
     themes,
 )
 from .themes import _culture_common as _themes_culture_common
+from .themes import _seneschal_common as _themes_seneschal_common
 from .themes import _shared as _themes_shared
 
 __all__ = [
@@ -100,6 +101,6 @@ _facade.install(
     __name__,
     (
         _paths, clock, palette, theme_tables, fonts, layout, text, primitives, furniture, spec,
-        _themes_shared, _themes_culture_common, *themes.THEME_MODULES, registry, core,
+        _themes_shared, _themes_culture_common, _themes_seneschal_common, *themes.THEME_MODULES, registry, core,
     ),
 )

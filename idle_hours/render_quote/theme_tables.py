@@ -834,6 +834,29 @@ THEMES = {
         "ornament_light": SPECTRA6["white"],
         "source": SPECTRA6["white"],
     },
+    # Seneschal's main screen, a custom frame: its dark HUD (white on navy, the
+    # lit colour the hour's) and its daylight panel (black on white). These
+    # palettes serve only the palette-only paths.
+    "seneschal": {
+        "page_bg": SPECTRA6["black"],
+        "text": SPECTRA6["white"],
+        "subtle": SPECTRA6["white"],
+        "faint": SPECTRA6["blue"],
+        "accent": SPECTRA6["yellow"],
+        "ornament_dark": SPECTRA6["blue"],
+        "ornament_light": SPECTRA6["white"],
+        "source": SPECTRA6["white"],
+    },
+    "seneschal_light": {
+        "page_bg": SPECTRA6["white"],
+        "text": SPECTRA6["black"],
+        "subtle": SPECTRA6["black"],
+        "faint": SPECTRA6["blue"],
+        "accent": SPECTRA6["red"],
+        "ornament_dark": SPECTRA6["black"],
+        "ornament_light": SPECTRA6["white"],
+        "source": SPECTRA6["black"],
+    },
     # *Oblivion*'s light table, a custom frame: black on white glass, red
     # phrase. Palette serves the palette-only paths.
     "oblivion": {
@@ -2229,6 +2252,19 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "quote_regular": [SHARETECHMONO_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
         "quote_bold": [SHARETECHMONO_REGULAR, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [(JOST_VARIABLE, "Bold"), *ORNAMENT_FONT_CANDIDATES],
+    },
+    "seneschal": {
+        # Saira, the app's face, pinned to weights (its default instance is Thin):
+        # Medium body, Bold phrase. Saira condensed and Michroma, the app's
+        # interface caps and wordmark, are loaded by the frame.
+        "quote_regular": [(SAIRA_VARIABLE, "Medium"), *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [(SAIRA_VARIABLE, "Bold"), *QUOTE_FONT_BOLD_CANDIDATES],
+        "ornament": [MICHROMA_REGULAR, *ORNAMENT_FONT_CANDIDATES],
+    },
+    "seneschal_light": {
+        "quote_regular": [(SAIRA_VARIABLE, "Medium"), *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [(SAIRA_VARIABLE, "Bold"), *QUOTE_FONT_BOLD_CANDIDATES],
+        "ornament": [MICHROMA_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "oblivion": {
         # Exo 2 (for the film's Blender), default instance Thin, so pin one:

@@ -197,8 +197,9 @@ idle_hours/
 ├─ render_quote/            the renderer package (issue #335; layering in docs/render_quote_split.md, fenced by
 │                           tests/test_render_quote_layering.py). Shared layers, lowest first, each importing only
 │                           from those before it: _paths → clock → palette → theme_tables → fonts → layout → text →
-│                           primitives → furniture → themes/_shared, themes/_culture_common → themes/<name>.py (one
-│                           module per theme, ending with its SPEC) → registry. spec sits just below themes/. core
+│                           primitives → furniture → themes/_shared, themes/_culture_common, themes/_seneschal_common
+│                           → themes/<name>.py (one module per theme, ending with its SPEC) → registry. spec sits
+│                           just below themes/. core
 │                           holds render(), the source card, the sleep frame and the CLI; _facade.py makes
 │                           render_quote.X read live and refuses writes; __main__.py is what run_clock runs.
 ├─ contact_sheet.py         12×12 grid of every bucket's pick, for offline QA
