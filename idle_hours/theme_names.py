@@ -125,8 +125,8 @@ TIME_SURFACE_THEMES: frozenset[str] = frozenset({
     "abyssal", "atropos", "bakelite", "beksinski", "betweenus", "betweenus_dark", "biomech", "bladerunner",
     "cardcatalog", "codex", "culture", "diags", "dsky", "expanse", "expedition", "gantry", "hades", "hal",
     "hippochomp", "hitchhiker", "izakaya", "lasvegas", "lieder", "lumon", "metro", "oblivion", "observation",
-    "orbital", "plaque", "platform", "pourjudgment", "pulp", "reactornight", "saros", "semiotic", "synoptic",
-    "tarot", "traumateam", "trisolaris", "vhs", "vitrail", "witcher", "yorha",
+    "orbital", "plaque", "platform", "pourjudgment", "pulp", "reactornight", "saros", "semiotic", "seneschal",
+    "seneschal_light", "synoptic", "tarot", "traumateam", "trisolaris", "vhs", "vitrail", "witcher", "yorha",
 })
 
 # Themes whose furniture prints the Idle Hours name (an imprint, a maker's
