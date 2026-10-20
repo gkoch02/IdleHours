@@ -1,0 +1,33 @@
+# Temporary: regenerate the seneschal themes' golden fixtures and README
+# previews on the CI runner (they render differently on macOS). Deleted in the
+# commit that lands the regenerated PNGs.
+name: tmp-regen-seneschal
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - run: UPDATE_RENDER_GOLDEN=1 pytest tests/test_render_golden.py -k seneschal
+      - run: |
+          python3 scripts/generate_theme_previews.py --theme seneschal
+          python3 scripts/generate_theme_previews.py --theme seneschal_light
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seneschal-regen
+          path: |
+            tests/golden/renderer/*seneschal*.png
+            idle_hours/assets/previews/seneschal*.png
