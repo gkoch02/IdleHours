@@ -9,6 +9,11 @@ canonical `vMAJOR.MINOR.PATCH` Git tags; the package version omits the leading
 Add release notes here as changes merge. The release preparation tool moves
 these entries under the new dated version heading.
 
+- New theme `goodmountain`: a fantasy quest-giver's parchment set in
+  Goodmountain (newly bundled, under its designer's own licence). The book
+  is the quest's name, the quote the quest text, the author the quest giver,
+  and three rewards are drawn from the face's own fantasy pictograms on a
+  torn, scorched sheet held down by iron brackets.
 - An upgraded appliance now gets the new corpus. A raw corpus and baked DB
   relocated to `/var/lib/idle-hours/` used to be copied from the package once
   and kept forever, so new quotes and corpus fixes never reached an existing

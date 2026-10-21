@@ -55,11 +55,20 @@ below, which are under the Apache License 2.0:
 - `idle_hours/fonts/permanent-marker/` — Permanent Marker, Apache-2.0
   (`permanent-marker/LICENSE.txt`)
 
+One face is under neither, and is **not** covered by the MIT grant or open for
+modification:
+
+- `idle_hours/fonts/goodmountain/` — Goodmountain by Hermann S Designs, under
+  its designer's own end-user licence (`goodmountain/LICENSE.txt`; upstream:
+  https://github.com/Hermann-S-Designs/Goodmountain). It may be used for any
+  work, commercial included, and passed on with that licence, but the font file
+  may not be modified or renamed, sold, or uploaded to a font distributor.
+
 Every other subdirectory of `idle_hours/fonts/` ships an `OFL.txt` covering the
 face beside it, and `idle_hours/fonts/OFL.txt` covers the Playfair Display files
 at the top level (upstream: https://github.com/clauseggers/Playfair-Display).
 
-Both licences require their text to travel with the work, which is why the
+Every one of these licences requires its text to travel with the work, which is why the
 license file sits in each family's directory rather than being summarised here;
 a face added without one is a licensing defect, not a cosmetic omission.
 

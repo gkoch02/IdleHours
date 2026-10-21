@@ -8,9 +8,10 @@ wheel (``package-data`` sweeps ``fonts/**/*``) and every Docker image, under a
 LICENSE that offers recipients the right to redistribute and sublicense it. It
 was replaced by Eagle Lake rather than documented further.
 
-Both licences in this bundle require their text to travel with the work — SIL
-OFL 1.1 §2 and Apache-2.0 §4(a) — so a face bundled without its license file is
-a compliance failure that ships to every user, not a cosmetic omission.
+Every licence in this bundle requires its text to travel with the work — SIL
+OFL 1.1 §2, Apache-2.0 §4(a), and Goodmountain's EULA as the condition of its
+redistribution grant — so a face bundled without its license file is a
+compliance failure that ships to every user, not a cosmetic omission.
 """
 
 from __future__ import annotations
@@ -29,7 +30,16 @@ FONT_SUFFIXES = (".ttf", ".otf", ".ttc")
 # license file beside it.
 TOP_LEVEL_LICENSE = FONTS / "OFL.txt"
 
-_LICENCE_MARKERS = ("SIL OPEN FONT LICENSE", "APACHE LICENSE")
+# Goodmountain is the one face under neither: Hermann S Designs' own EULA,
+# which grants redistribution ("Share the file further, as long as this
+# license is included") but forbids modifying or renaming the file and
+# selling it. Its marker is that grant, word for word, so a different EULA
+# without one still fails.
+_LICENCE_MARKERS = (
+    "SIL OPEN FONT LICENSE",
+    "APACHE LICENSE",
+    "SHARE THE FILE FURTHER, AS LONG AS THIS LICENSE IS INCLUDED",
+)
 
 
 def _fonts() -> list[Path]:

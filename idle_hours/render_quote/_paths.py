@@ -116,6 +116,10 @@ IMFELLENGLISHSC_REGULAR = str(BASE_DIR / "fonts/im-fell-english-sc/IMFellEnglish
 # the face Clair Obscur: Expedition 33 sets its UI text in. Roman and italic only; no bold exists.
 IMFELLDOUBLEPICA_REGULAR = str(BASE_DIR / "fonts/im-fell-double-pica/IMFELLDoublePica-Regular.ttf")
 IMFELLDOUBLEPICA_ITALIC = str(BASE_DIR / "fonts/im-fell-double-pica/IMFELLDoublePica-Italic.ttf")
+# Goodmountain (Hermann S Designs, custom EULA in goodmountain/LICENSE.txt: redistribution
+# with the licence, no modification, no renaming) — a condensed, high-contrast fantasy serif
+# with ~30 fantasy pictograms in its emoji slots. One weight. ``goodmountain``'s every role.
+GOODMOUNTAIN_REGULAR = str(BASE_DIR / "fonts/goodmountain/Goodmountain-Regular.otf")
 # Bebas Neue (expedition numerals + label chrome) — condensed display caps, the face the same
 # game sets its UI numbers in. One static Regular.
 BEBASNEUE_REGULAR = str(BASE_DIR / "fonts/bebas-neue/BebasNeue-Regular.ttf")
