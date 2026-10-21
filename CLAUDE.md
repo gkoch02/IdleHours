@@ -80,8 +80,7 @@ Full reference: [`docs/pipeline.md`](docs/pipeline.md). Pipeline order: miner �
 
 ## Architecture
 
-
-### Rendering (`render_quote.py`)
+### Rendering (`render_quote/`)
 
 Imports `pick_quote` in-process and lays out an 800×480 RGB PNG snapped to the six Spectra 6 inks (`snap_image_to_palette`). **Full reference — every theme's design notes, the font chains, and the colour-recipe table — lives in [`docs/themes.md`](docs/themes.md).** Read the relevant theme's entry there before touching its painter; most entries record approaches that were tried and rejected, and why. **Theme design notes live in `docs/themes.md` only**: a theme module's header is a few lines and links there, and a `THEMES` / `THEME_FONTS` comment carries only the palette or font rationale (issue #399). Comments tied to one line (an ink recipe, a dither pitfall) stay in the code.
 
