@@ -119,6 +119,7 @@ CUSTOM_FRAME_THEMES = (
     "platform",
     "splitflap",
     "imprimatur",
+    "goodmountain",
 )
 
 # ``diags`` is the developer swatch panel, not a literary theme: it paints its

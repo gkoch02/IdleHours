@@ -9725,3 +9725,62 @@ class TestImprimaturFrame:
 
     def test_frame_ignores_the_clock(self):
         assert pixel_bytes(self._render(time_str="18:15")) == pixel_bytes(self._render(time_str="03:40"))
+class TestGoodmountainFrame:
+    """``goodmountain`` — a quest-giver's parchment in Goodmountain: the book
+    as the quest, the author as the giver, three rewards from the face's own
+    pictograms."""
+
+    THEME = "goodmountain"
+    ROW = dict(
+        display_quote="It was at ten o’clock today that the first of all Time Machines began its career.",
+        matched_text="ten o’clock",
+        author="H. G. Wells",
+        title="The Time Machine",
+    )
+
+    @classmethod
+    def _render(cls, row=None, time_str="10:00", size=(800, 480)):
+        return rq.render(time_str, make_row(**(row or cls.ROW)), *size, mode="production", theme=cls.THEME)
+
+    def test_registered_everywhere(self):
+        from idle_hours import display_inky
+        assert self.THEME in rq.THEMES and self.THEME in rq.THEME_ORDER
+        assert display_inky.THEME_SATURATION[self.THEME] == 0.5
+        for role in ("quote_regular", "quote_bold", "ornament"):
+            assert rq.theme_font_candidates(self.THEME, role)[0].endswith("Goodmountain-Regular.otf")
+
+    def test_face_carries_every_glyph_the_frame_sets(self):
+        gm = rq_themes.goodmountain
+        font = gm._goodmountain_font(40)
+        notdef = font.getmask("\uffff").getbbox()
+        for glyph in ["⚔", "!", "…", *(g for g, _ in gm._GOODMOUNTAIN_REWARDS)]:
+            assert font.getmask(glyph).getbbox() not in (None, notdef), f"{glyph!r} is missing from the face"
+
+    def test_rewards_are_three_distinct_and_seeded(self):
+        gm = rq_themes.goodmountain
+        rewards = gm._goodmountain_rewards(make_row(**self.ROW))
+        assert len(rewards) == len(set(rewards)) == 3
+        assert rewards == gm._goodmountain_rewards(make_row(**self.ROW))
+        rows = [make_row(display_quote=f"At {n} o'clock.", matched_text=f"{n} o'clock") for n in range(1, 13)]
+        assert len({tuple(gm._goodmountain_rewards(r)) for r in rows}) > 1
+
+    def test_long_title_drops_its_subtitle(self):
+        row = dict(self.ROW, title="Bull-dog Drummond: The Adventures of a Demobilised Officer Who Found Peace Dull")
+        short = dict(self.ROW, title="Bull-dog Drummond")
+        top = (0, 0, 800, 80)
+        assert pixel_bytes(self._render(row).crop(top)) == pixel_bytes(self._render(short).crop(top))
+
+    def test_inks(self):
+        assert distinct_inks(self._render()) <= {rq.SPECTRA6[k] for k in ("white", "black", "red", "yellow", "green", "blue")}
+        counts = ink_counts(self._render())
+        assert counts[rq.SPECTRA6["yellow"]] > counts[rq.SPECTRA6["red"]], "the parchment's cream is missing"
+
+    def test_degenerate_rows_still_render(self):
+        for row in (dict(display_quote="", matched_text=""), dict(display_quote="At noon.", matched_text="noon")):
+            assert self._render(row).size == (800, 480)
+        assert self._render(size=(200, 120)).size == (200, 120)
+
+    def test_frame_ignores_the_clock(self):
+        assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
+
+

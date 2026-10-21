@@ -52,6 +52,7 @@ from ._paths import (
     FONDAMENTO_REGULAR,
     FRAUNCES_ITALIC_VARIABLE,
     FRAUNCES_VARIABLE,
+    GOODMOUNTAIN_REGULAR,
     GRENZE_GOTISCH_VARIABLE,
     IDLE_HOURS_FRAKTUR_BOOK,
     IMFELLDOUBLEPICA_ITALIC,
@@ -783,6 +784,18 @@ THEMES = {
         "accent": SPECTRA6["red"],
         "ornament_dark": SPECTRA6["black"],
         "ornament_light": SPECTRA6["red"],
+        "source": SPECTRA6["black"],
+    },
+    # A quest-giver's parchment, a custom frame: black on Y+W cream, the
+    # phrase in red. Palette serves the palette-only paths.
+    "goodmountain": {
+        "page_bg": SPECTRA6["white"],
+        "text": SPECTRA6["black"],
+        "subtle": SPECTRA6["black"],
+        "faint": SPECTRA6["yellow"],
+        "accent": SPECTRA6["red"],
+        "ornament_dark": SPECTRA6["black"],
+        "ornament_light": SPECTRA6["yellow"],
         "source": SPECTRA6["black"],
     },
     # *2001*'s Discovery monitors, a custom frame: white on the blue monitor,
@@ -2332,6 +2345,12 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "quote_regular": [IMFELLENGLISH_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
         "quote_bold": [IMFELLENGLISHSC_REGULAR, IMFELLENGLISH_REGULAR, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [IMFELLENGLISHSC_REGULAR, *ORNAMENT_FONT_CANDIDATES],
+    },
+    "goodmountain": {
+        # Goodmountain, one weight: the phrase differs by its red alone.
+        "quote_regular": [GOODMOUNTAIN_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [GOODMOUNTAIN_REGULAR, *QUOTE_FONT_BOLD_CANDIDATES],
+        "ornament": [GOODMOUNTAIN_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "redacted": {
         # Special Elite, one weight: the phrase differs by colour alone.

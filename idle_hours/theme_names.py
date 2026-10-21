@@ -105,6 +105,7 @@ THEME_ORDER: tuple[str, ...] = (
     "platform",
     "splitflap",
     "imprimatur",
+    "goodmountain",
     "diags",
 )
 # Themes registered in THEMES but excluded from every rotation (button A, web
