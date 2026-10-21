@@ -458,19 +458,34 @@ def _astrarium_paint_quote_panel(
 
 
 _ASTRARIUM_ZONE_COORDS: dict[str, tuple[float, float]] | None = None
+_ASTRARIUM_ZONE_LINKS: dict[str, str] | None = None
 
 
 def _astrarium_zone_coords() -> dict[str, tuple[float, float]]:
     """``assets/zone_coords.json`` (``scripts/generate_zone_coords.py``): each IANA zone's
     principal city. Fails open to no entries, which puts the sky at the UTC offset's meridian."""
-    global _ASTRARIUM_ZONE_COORDS
+    global _ASTRARIUM_ZONE_COORDS, _ASTRARIUM_ZONE_LINKS
     if _ASTRARIUM_ZONE_COORDS is None:
         try:
             raw = json.loads((BASE_DIR / "assets" / "zone_coords.json").read_text(encoding="utf-8"))
             _ASTRARIUM_ZONE_COORDS = {name: (float(c[0]), float(c[1])) for name, c in raw["zones"].items()}
-        except (OSError, ValueError, KeyError, TypeError, IndexError):
-            _ASTRARIUM_ZONE_COORDS = {}
+            _ASTRARIUM_ZONE_LINKS = {str(k): str(v) for k, v in raw.get("links", {}).items()}
+        except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError):
+            _ASTRARIUM_ZONE_COORDS, _ASTRARIUM_ZONE_LINKS = {}, {}
     return _ASTRARIUM_ZONE_COORDS
+
+
+def _astrarium_tzinfo(zone: str) -> datetime.tzinfo | None:
+    """``ZoneInfo(zone)``, or of the zone a legacy link names when the system leaves links
+    out (Debian 13 and Ubuntu 24.04 ship ``US/Pacific`` in a separate ``tzdata-legacy``)."""
+    _astrarium_zone_coords()
+    for name in (zone, (_ASTRARIUM_ZONE_LINKS or {}).get(zone)):
+        if name:
+            try:
+                return zoneinfo.ZoneInfo(name)
+            except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+                continue
+    return None
 
 
 def _astrarium_sky(now: datetime.datetime, zone: str | None) -> tuple[float, float]:
@@ -484,12 +499,7 @@ def _astrarium_sky(now: datetime.datetime, zone: str | None) -> tuple[float, flo
     port bit for bit (IdleHoursTV's ``Astrarium.Sky``).
     """
     coords = _astrarium_zone_coords().get(zone or "")
-    tz: datetime.tzinfo | None = None
-    if zone:
-        try:
-            tz = zoneinfo.ZoneInfo(zone)
-        except (zoneinfo.ZoneInfoNotFoundError, ValueError):
-            tz = None
+    tz = _astrarium_tzinfo(zone) if zone else None
     offset = (now.replace(tzinfo=tz).utcoffset() if tz is not None else now.astimezone().utcoffset()) or datetime.timedelta(0)
     lat, lon = coords if coords is not None else (0.0, offset.total_seconds() / 240.0)
     utc = now - offset
