@@ -2757,6 +2757,22 @@ class TestAstrariumSky:
         assert self._sky(2026, 3, 1, 9, 0, zone="US/Pacific") == self._sky(2026, 3, 1, 9, 0, zone="America/Los_Angeles")
         assert self._sky(2026, 3, 1, 9, 0, zone="Asia/Calcutta") == self._sky(2026, 3, 1, 9, 0, zone="Asia/Kolkata")
 
+    def test_a_link_the_system_leaves_out_falls_back_to_its_target(self, monkeypatch):
+        # Debian 13 / Ubuntu 24.04 without tzdata-legacy: the link name does not load.
+        import zoneinfo
+
+        from idle_hours.render_quote.themes import astrarium
+        real = zoneinfo.ZoneInfo
+
+        def without_links(key):
+            if key in ("US/Pacific", "Asia/Calcutta"):
+                raise zoneinfo.ZoneInfoNotFoundError(key)
+            return real(key)
+
+        monkeypatch.setattr(astrarium.zoneinfo, "ZoneInfo", without_links)
+        assert self._sky(2026, 3, 1, 9, 0, zone="US/Pacific") == self._sky(2026, 3, 1, 9, 0, zone="America/Los_Angeles")
+        assert self._sky(2026, 3, 1, 9, 0, zone="Asia/Calcutta") == self._sky(2026, 3, 1, 9, 0, zone="Asia/Kolkata")
+
     def test_an_unplaced_zone_stands_on_the_equator_at_its_offset(self):
         # Etc/GMT-8 is UTC+8 and has no city: 120°E on the equator, the sun overhead near noon
         # at the equinox.

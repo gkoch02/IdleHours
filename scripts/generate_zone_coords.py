@@ -11,8 +11,16 @@ the zone is not.
 ``zone.tab`` names only canonical zones, and a device may report a link (``US/Pacific``,
 ``Asia/Calcutta``: Apple's platforms still use some of the old names). The installed
 ``tzdata.zi`` lists every link (``L Europe/London GB``), and a link takes its target's place.
+The links are also written out as ``{link: target}``: Debian 13 and Ubuntu 24.04 ship the
+legacy names in a separate ``tzdata-legacy`` package, so ``ZoneInfo("US/Pacific")`` can fail
+where ``ZoneInfo("America/Los_Angeles")`` loads, and the renderer then tries the target.
 A name in neither (``UTC``, ``Etc/GMT+8``) is left out: the renderer then places the clock on
 the equator at its UTC offset's meridian.
+
+Run it against PyPI's ``tzdata`` (``--zoneinfo <site-packages>/tzdata/zoneinfo``), which is
+built from upstream's main data form: distributions differ (Ubuntu's rearguard build keeps
+``Iceland`` and ``Pacific/Ponape`` as zones of their own), and the asset should not depend
+on whose machine regenerated it.
 
 Usage: python3 scripts/generate_zone_coords.py [--zoneinfo /usr/share/zoneinfo]
 """
@@ -53,13 +61,17 @@ def main() -> None:
         canonical[fields[2]] = (round(lat, 4), round(lon, 4))
 
     zones = dict(canonical)
+    links: dict[str, str] = {}
     for line in (root / "tzdata.zi").read_text(encoding="utf-8").splitlines():
         fields = line.split()
-        if len(fields) == 3 and fields[0] == "L" and fields[1] in canonical:
-            zones.setdefault(fields[2], canonical[fields[1]])
+        if len(fields) == 3 and fields[0] == "L":
+            links[fields[2]] = fields[1]
+            if fields[1] in canonical:
+                zones.setdefault(fields[2], canonical[fields[1]])
 
     OUT.write_text(json.dumps({"source": "tzdata zone.tab, links from tzdata.zi",
-                               "zones": dict(sorted(zones.items()))},
+                               "zones": dict(sorted(zones.items())),
+                               "links": dict(sorted(links.items()))},
                               indent=0, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"wrote {len(canonical)} zones and {len(zones) - len(canonical)} links to {OUT}")
 
