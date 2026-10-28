@@ -1,12 +1,36 @@
 # Rendering & themes
 
-Reference for `render_quote.py`: layout, typography, and the per-theme design
-notes, plus the bundled-font table. `CLAUDE.md` keeps the theme checklist and
-conventions and links here; other sections named below ("Baked Quote
-Database", "Runtime Loop", …) are in [`pipeline.md`](pipeline.md) and
-[`runtime.md`](runtime.md).
+Reference for the `render_quote` package: layout, typography, the theme
+checklist and conventions, the per-theme design notes, and the bundled-font
+table. `CLAUDE.md` keeps the invariants and links here; other sections named
+below ("Baked Quote Database", "Runtime Loop", …) are in
+[`pipeline.md`](pipeline.md) and [`runtime.md`](runtime.md).
 
-**Adding a theme?** Read the checklist in `CLAUDE.md` ("Rendering") first.
+## Adding a theme
+
+The theme architecture, the checklist for a new theme and the conventions every theme follows. `CLAUDE.md` points here.
+
+**Theme architecture.** `THEMES` (colours), `THEME_ORDER` (cycle order), `THEME_FONTS` (per-role candidate chains; variable fonts use `(path, "Instance")` tuples and **must** pin an instance — several defaults are Thin or Black). A theme is exactly one of: border-painted (a `BorderSpec`: `render` lays the quote out, then paints the border once in a knockout pass that hands themes with a `clear_rect_pad` the body rect, and the time when `wants_time` is set; the specs with `paints_twice` also get a first paint on the bare page, because their look is the composite of two paints — issue #361, fenced by `TestPaintsTwice`), a custom-render frame (a `FrameSpec` naming `render_<theme>_frame`, also listed in `CUSTOM_FRAME_THEMES` in `tests/test_theme_decoration.py`), or deliberately plain (`default`, `dark`; `registry.PLAIN_THEMES`). `registry` builds the dispatch tables from every module's `SPEC` and fails at import if a theme is unclaimed, claimed twice or unknown; `_BORDER_PAINTERS`, `_FRAME_RENDERERS` and `_DEBUG_LABEL_RIGHT_INSET` are read-only views of it. `diags` is a swatch panel, excluded from `--theme random`. Either spec may also carry `sleep`, the theme's own quiet-hours frame, which `render_sleep_frame` draws in place of the bundled sleep quote (a theme that has one describes it in its `docs/themes.md` entry; the rest fall back to the quote).
+
+**Adding a theme — checklist.**
+1. `THEME_ORDER` (in the Pillow-free `theme_names.py`; `run_clock`'s `--theme` choices and `render_quote.THEME_ORDER` both read it), `THEMES` and `THEME_FONTS` (in `render_quote/theme_tables.py`), and `display_inky.THEME_SATURATION` (`0.5` light ground, `0.7` dark / coloured / bloom-heavy).
+2. Its own `render_quote/themes/<theme>.py`, listed in `themes.THEME_MODULES` (a test fails if a theme module is missing from the facade), holding either a border painter or a `render_<theme>_frame`, and ending with its `SPEC` (`spec.BorderSpec` or `spec.FrameSpec`); a frame theme also needs a `CUSTOM_FRAME_THEMES` entry. A theme module never imports another theme module: code two themes use goes in `themes/_shared.py`. Frame helpers are named `_<theme>_paint_*` (the decoration fence neuters them by name). A border that paints in the y=14-29 top-right band sets `debug_label_inset` on its spec.
+3. Golden fixture: `UPDATE_RENDER_GOLDEN=1 pytest tests/test_render_golden.py`. If the theme reads the wall clock, read it through `clock.now()` and add the theme to `CLOCK_DEPENDENT_THEMES`.
+4. README row + preview (`python scripts/generate_theme_previews.py --theme NAME`), the README contact-sheet loop and the button-A chain in `docs/runtime.md` (rosters fenced by `tests/test_docs_theme_registry.py`), and `python3 scripts/generate_font_table.py` if the theme brings a new face (a new directory under `idle_hours/fonts/` with its licence file).
+5. A paragraph in `docs/themes.md` (theme + font), and a row in its colour table for any recipe you use.
+6. Optional: its own sleep frame, a `sleep=` renderer on its spec, with a `sleep` scenario in `tests/test_render_golden.py`.
+
+**Conventions every theme follows** (each learned the hard way — details in the per-theme entries below):
+- **On-palette only.** Colours the panel lacks are synthesised by stippling two or three inks (`draw_text_dithered`, `_fill_swatch_stipple[_3way]`, or paint-a-sentinel-then-bbox-post-pass). Catalogue: `docs/spectra6_color_recipes.md`. Bias a mix toward the *less* luminous ink (5/8 R + 3/8 Y reads tangerine; 50/50 reads washed-out amber).
+- **Judge on panel inks, not an RGB screenshot.** Calibrated inks: red ≈ `#62201E`, yellow ≈ `#C1BB1E`, blue ≈ `#233F8E`, green ≈ `#35563A`, black ≈ `#1F2226`, white ≈ `#B9C7C9`. Box-average to simulate 1–3 m viewing.
+- **Dither pitfalls.** Two reads of the same Bayer tile are perfectly correlated — split one rank read into bands instead (`pride`, `bakelite`). Use `BAYER_8x8` for gradients. Jitter an ordered field over large areas (`position_noise` / seeded `randbytes`) or it lattices. Two periodic patterns beat. Lattices sampling the same pixels must have coprime periods.
+- **Glow / relief / shading primitives:** `paint_neon_mask` (falling-density bloom, always pass `ground=` so later halos can't eat earlier cores; `glow_minor` for two-ink glows), `paint_relief_mask`, `paint_hatched_tone`, `paint_flow_strokes`, `paint_craquelure`, `shade_height_field`, `wrap_quote_into_masks`, `paint_mount_card`.
+- **Shared small helpers — reuse, don't re-type** (issue #336 folded about fifty theme-prefixed copies into these): `_clock_hour12` (hour-only time surfaces), `_clock_hh_mm` (hour and minute; falls back to midnight on a malformed time, never raises), `_row_digest` (quote seeds), `_white_noise` / `_smooth_noise`, `_bayer_threshold_field`, `_lerp_stops`, `_halo_paste`, `_soft_ellipse_mask`, `_PANEL_INKS` + `_dither_calibrated` (Floyd–Steinberg in the measured ink space), `_shade_silhouette` / `_catmull_rom`, `_place_quote` + `_paint_placed` (fit, position and draw a ragged-right quote; both in `furniture`, not `themes/_shared`), `_place_lines` (position already-fitted lines centred or flush left by ink width, for `_paint_placed`, whose `accent_light=` stipples the matched phrase), `layout._trim_line` (drop a wrapped line's edge spaces; never re-type the loop), `_fit_dotted_byline` / `_fit_from_title` / `draw_truncated_centred_byline` (bylines). A new `_<theme>_hour` or `_<theme>_seed` is a smell.
+- **Committed raster plates** go through `dither_image_to_palette` / `_load_dithered_plate`, restricted to the theme's sub-palette, with a synthesised fallback when the asset is missing. Generators live in `scripts/generate_*_plate.py`.
+- **Determinism.** Frames must be byte-identical across processes: never `hash()`; seed from `_row_digest` or a fixed seed. Don't read the wall clock unless listed in `CLOCK_DEPENDENT_THEMES`, and then only through `clock.now()` (`render_quote/clock.py`), the renderer's single clock seam. Reach it through its module, never `from .clock import now`: a name import is a second binding that a patch on the seam cannot reach. A golden-suite AST fence rejects both a direct clock read (`now()`, `today()`, `time.time()`, `fromtimestamp()` …) and a name import of the seam. For a pure code move, `scripts/render_fingerprint.py` hashes every theme's frames, so a run on `main` and a run on the branch must match exactly. That is stricter than the golden suite's 0.1% tolerance.
+- **Time surfaces.** The matched phrase carries the time. Never print HH:MM digits unless the object genuinely is a clock (`vhs` OSD). Hour-only carriers (Roman numerals, camera number, due stamp…) are pinned byte-identical across the minutes of an hour; otherwise `del time_str` at frame entry. A theme that draws the time goes in `theme_names.TIME_SURFACE_THEMES`, which Idle Weather leaves out of its rotation unless it has judged the time decorative, and one that prints the Idle Hours name in `BRANDED_THEMES`; `tests/test_render_golden.py` fails on an unlisted one.
+- **Fixed-geometry frames** compose at the canonical 800×480 and NEAREST-downsample for other sizes (`metro` convention; `TestFixedGeometryFramesDownscale`). Per-pixel writes must be bounds-clipped for `/api/preview` thumbnails.
+- **Small text** in hairline serifs or two-ink stipples shreds after palette snapping — use a sturdier face or a solid ink for bylines and chrome.
 
 ## Bundled fonts
 
