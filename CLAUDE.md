@@ -134,7 +134,7 @@ Pillow → Pimoroni `inky.auto` bridge, retried on I/O hiccups, Pi only. `THEME_
 
 ### Repo Layout
 
-Everything the wheel ships lives under the single `idle_hours/` package (`pyproject.toml` is the source of truth for its contents); `scripts/`, `docs/`, `ops/` and `tests/` stay at the root, and `output/` and `data/` are runtime artefacts. The README's "Repo map" describes each module. When editing:
+Everything the wheel ships lives under the single `idle_hours/` package (`pyproject.toml` is the source of truth for its contents); `scripts/`, `docs/`, `ops/` and `tests/` stay at the root, and `output/` and `data/` are runtime artefacts. `docs/runtime.md` (the module ownership table) and `docs/pipeline.md` (the commands, in stage order) describe each module. When editing:
 
 - `render_quote/` is a layered package: `_paths → clock → palette → theme_tables → fonts → layout → text → primitives → furniture → themes/_shared → themes/<name>.py → registry`, each layer importing only from those before it (`docs/render_quote_split.md`, fenced by `tests/test_render_quote_layering.py`). `core` holds `render()`, the source card, the sleep frame and the CLI.
 - `run_clock.py` is a thin orchestrator over the `runtime_*` modules (config, state, store, telemetry, theme, quiet, render, actions, log), each owning one concern; the ownership table is in `docs/runtime.md`.
