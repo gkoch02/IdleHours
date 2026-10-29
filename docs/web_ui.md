@@ -142,3 +142,68 @@ All three rejections write a `mode="web_error"` telemetry entry with `status` an
 **Theme preview endpoint.** `GET /api/preview?theme=...&time=HH:MM` calls `pick_quote.select_quote` (history disabled for determinism), feeds the result into `render_quote.render`, and streams the PNG bytes back. The Now tab's theme thumbnail grid issues one request per registered theme so an operator can compare every operator-choice theme (all of them but the `diags` swatch panel) side-by-side on the actual current quote before applying. Width/height are clamped to `800×480` so a hostile/buggy client can't request a slow or high-memory render. Does not touch the panel and never commits to `state` — preview is intentionally side-effect-free.
 
 **`POST /api/bake` semantics.** Runs `bake_quote_database.bake_rows` in-process; non-blocking acquire of `render_lock` returns 409 (busy) when a render is already in flight rather than queueing behind a 10–20 s Spectra 6 refresh. Re-applies `idle_hours/assets/content_overrides.json` to the raw corpus *before* baking so a UI workflow of "edit row → save → bake" round-trips edits onto the panel within seconds — and **writes the patched rows back to the raw corpus** (issue #288), matching the CLI stage, whose in-place writeback is what "re-apply" means there. The bake used to patch an in-memory copy and write only the baked DB, while every curator read surface (`/api/bucket`, `/api/search`, the history join, the coverage grid) reads the raw corpus: after save → bake the panel showed the patched quote and the inspector the old text, so the operator concluded the save had not landed. The overrides stage runs even with an empty sidecar, because that is how a deleted override is reverted (see `override_originals` above); the raw write is skipped when no row actually changed (a repeat bake is a no-op on the SD card) and goes through `atomic_write_lines` under the same `render_lock`. The runtime picker reads the baked DB from disk on every `select_quote` call (it goes through `_resolve_corpus`), so no in-memory cache invalidation is needed — the next tick picks up the new file automatically. Stats are returned in the response (`kept` / `input` / `applied_overrides` / `reverted_overrides` / `drops` / `per_bucket`) so the UI can render an operator-readable summary.
+
+## The four tabs and the endpoints
+
+The UI is vanilla HTML/JS/CSS served from `idle_hours/web/`, a mobile-first four-tab layout (Now / Curate / Coverage / Activity) with 44px tap targets and breakpoints at 768px and 1024px. Tab state is kept in `location.hash`, so a bookmark like `idle-hours.local#curate` opens the editor.
+
+### First-run wizard
+
+A modal overlay appears on the very first visit to a fresh appliance: pick a theme from a thumbnail grid (each tile is a live `/api/preview` PNG of the current quote in that theme), confirm the configured quiet hours, dismiss. Choices are persisted to `state.json` so the wizard never reappears. Nothing about the clock loop changes — it's the discovery surface for knobs that were already CLI-configurable.
+
+### Tab: Now
+
+- Live preview of `output/current.png`, the picked quote text, attribution (`source_id` + `line_number`), and the matched time phrase the renderer bolded.
+- Buttons that mirror the physical Inky panel (`A · Next theme`, `A-hold · Ban theme`, `B · Next quote`, `B-hold · Ban quote`, `C-hold · Undo last ban`, `D · Quiet / wake`), plus `Un-skip`, `Re-render`, a theme dropdown that jumps directly to any registered theme, and the list of banned themes with an un-ban on each and a **Clear all**.
+- **Ban this quote** button: adds the current `(source_id, line_number)` to `ban_quote_keys` in the selection overrides sidecar so the picker never returns this exact row again — the rest of the source still works normally.
+- Theme thumbnail grid: side-by-side previews of every registered theme, rendered against the current quote so you can compare typography + palette before committing. Click a tile to apply it.
+
+### Tab: Curate
+
+- **Corpus search**: full-text + author + title + bucket filters. Linear stdlib scan over the raw attributed corpus (~3K rows, <50 ms). Reads the raw corpus, not the baked DB, so an operator looking for "where did this quote go?" can find rows the baker dropped (low quality / daypart-only) and see why they're not appearing.
+- **Bucket inspector**: ranked candidate list for any bucket (or `HH:MM`), with every scorer component named so you can see *why* a different quote was not picked. Each candidate has its own "Ban this quote" button.
+- **Selection-overrides editor**: edits `idle_hours/assets/selection_overrides.json` inline; server validates (rejects bad bucket keys, malformed `ban_quote_keys` entries) and atomically rewrites.
+- **Content-overrides editor**: edits `idle_hours/assets/content_overrides.json` — the per-row content sidecar applied at bake time. Strict per-field validation; allowed fields match `apply_content_overrides.ALLOWED_FIELDS` exactly.
+- **Bake now**: re-runs `bake_quote_database.bake_rows` in-process, re-applying the content-overrides sidecar first so a "edit row → save → bake" flow drops new excerpts onto the panel within seconds. Held under `render_lock`; returns 409 (busy) if a render is in flight.
+
+### Tab: Coverage
+
+- 144-cell bucket grid coloured by corpus depth; click-through feeds the inspector.
+- **Bucket gap finder**: empty/sparse buckets surfaced with phrase suggestions lifted from `target_sparse_buckets.STATE_TEMPLATES`, so the suggested phrases match what the targeted-mining CLI would actually look for. Adjustable threshold; sorted emptiest-first.
+
+### Tab: Activity
+
+- Telemetry: renders / errors / p50 / p95 latencies over the last 24 h, reading the same date-rotated sidecar that `idle_hours_health.py` does.
+- History: the anti-repeat ledger, newest first.
+
+The UI shares the render lock with the button handlers, so every mutating action (skip, un-skip, theme, theme / quote ban, quiet, re-render, overrides save, bake) respects "first press wins": a POST that lands during a 10–20s Spectra 6 refresh returns `409 busy` instead of queueing.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /` | Curator HTML/JS/CSS (mobile-first four-tab layout) |
+| `GET /current.png` | Streams the current rendered frame |
+| `GET /metrics` | Prometheus text-exposition format over a 24 h window (renders / errors / heartbeats / actions / latency p50+p95 / `last_heartbeat_age_seconds`). Unauthed on every bind. |
+| `GET /api/current` | `{time, bucket, theme, source_id, line_number, display_quote, matched_text, ...}` |
+| `GET /api/telemetry?hours=24` | p50/p95 render/display latency + error counts (reuses `idle_hours_health`) |
+| `GET /api/coverage` | The 144-bucket coverage, computed live from the running corpus and counting only rows the panel can display (quality floor + bans; raw tallies alongside as `raw_bucket_counts`); falls back to `idle_hours/assets/bucket-coverage.json` |
+| `GET /api/gaps?threshold=N` | empty/sparse buckets with harvester phrase suggestions |
+| `GET /api/themes` | `{themes, theme_arg, manual_theme, effective}` — feeds the dropdown |
+| `GET /api/bucket/<bucket>?time=HH:MM&top=N` | Full ranked candidate list with per-component scores |
+| `GET /api/search?q=&author=&title=&bucket=&limit=N` | linear-scan full-text search over the raw corpus |
+| `GET /api/preview?theme=&time=HH:MM&width=&height=` | render the current quote as PNG bytes in any theme (history disabled for determinism); side-effect-free |
+| `GET /api/overrides` | Current `idle_hours/assets/selection_overrides.json` (now includes `ban_quote_keys`) |
+| `GET /api/content-overrides` | current `idle_hours/assets/content_overrides.json` (fail-open on corrupt sidecar) |
+| `GET /api/setup` | first-run wizard status + the values it shows (themes, quiet hours) |
+| `GET /api/history?limit=N` | Recent anti-repeat ledger entries, joined against the corpus so each carries its quote text and attribution |
+| `POST /api/overrides` | Validate + atomically rewrite selection overrides (now accepts `ban_quote_keys`) |
+| `POST /api/content-overrides` | validate + atomically rewrite the per-row content sidecar; empty `{}` is a legitimate "wipe everything" |
+| `POST /api/bake` | re-run `bake_quote_database.bake_rows` in-process under `render_lock`; re-applies the content-overrides sidecar first so save → bake reflects on the next tick. 409 when busy. |
+| `POST /api/setup` | mark first-run wizard complete; optional `{"theme": "<name>"}` body applies a theme before dismissing |
+| `POST /api/action/{theme,ban-theme,skip,ban-quote,quiet}` | Mirror buttons A / A-hold / B / B-hold / D. `theme` accepts an optional `{"theme": "<name>"}` body to jump directly; empty body / missing field does what button A does. Malformed JSON returns 400 without mutating state. |
+| `POST /api/action/{unskip,rerender}` | Web only: reverse the last skip; repaint the frame on the panel. |
+| `POST /api/action/unban-theme` | `{"theme": "<name>"}` lifts a theme ban (no repaint). 400 on an unknown name. |
+| `POST /api/action/undo-ban` | Mirrors button C-hold: undo the most recent ban. |
+| `POST /api/action/clear-theme-bans` | Lift every theme ban (no repaint). Web only. |
+| `POST /api/overrides/ban` | `{"key": "<source_id>:<line_number>"}`: append one key to `ban_quote_keys` server-side, under the editor's lock (see above) |
+
+Every mutating action shares the render lock with the button handlers, so a POST that lands during a 10–20 s Spectra 6 refresh returns `409 busy` instead of queueing.
