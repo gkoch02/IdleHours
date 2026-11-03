@@ -1,178 +1,231 @@
-"""The ``wobblesam`` theme: a spiral notebook page in Wobblesam, whose margin
-doodles all look at the time.
+"""The ``wobblesam`` theme: an optician's eye chart set in Wobblesam, the face
+whose letters have eyes.
 
 Design notes: docs/themes.md § wobblesam
 """
 
 from __future__ import annotations
 
-import math
-import random
+from typing import Any
 
 from PIL import Image, ImageDraw
 
 from .._paths import ORNAMENT_FONT_CANDIDATES, WOBBLESAM_BOLD, WOBBLESAM_REGULAR
-from ..fonts import _font_ascent, load_font
-from ..furniture import _place_quote, _row_digest
+from ..fonts import _font_ascent, load_font, normalize_dashes
+from ..furniture import _paint_placed, _place_quote
+from ..layout import strip_underscore_emphasis, tokenize_quote
 from ..palette import SPECTRA6, SPECTRA6_PALETTE, snap_image_to_palette
 from ..spec import FrameSpec
 from ..text import fit_text_to_width
 
-_WOBBLESAM_SEED = 0x574F4242                 # WOBB
-_WOBBLESAM_COIL_X = 20                       # centre of the binding's punched holes
-_WOBBLESAM_COIL_PITCH = 24
-_WOBBLESAM_MARGIN_X = 92                     # the red margin line
-_WOBBLESAM_RULE_X0 = 34                      # rules start just right of the holes
-_WOBBLESAM_RULE_TOP = 70                     # no rule above the header strip
-_WOBBLESAM_RULE_BOTTOM = 470
-_WOBBLESAM_BODY = (114, 84, 766, 380)
-_WOBBLESAM_BYLINE_MIN_Y = 414                # lowest a byline baseline may sit is the canvas
-_WOBBLESAM_BYLINE_MAX_W = 640
-# Where a doodled eye may sit: (cx, cy, radius). The left column is the space
-# between the binding and the margin line; the top row is the header strip
-# above the first rule. Neither ever holds text.
-_WOBBLESAM_LEFT_SLOTS = ((62, 104, 18), (60, 186, 15), (63, 262, 20), (60, 344, 16), (62, 424, 18))
-_WOBBLESAM_TOP_SLOTS = ((168, 36, 20), (282, 34, 16), (402, 37, 21), (520, 34, 17), (640, 36, 20), (748, 35, 18))
-_WOBBLESAM_EYES_PER_EDGE = 3
-# Iris inks, ``None`` for a plain black pupil. Weighted toward plain.
-_WOBBLESAM_IRISES = (None, None, "blue", "green")
-_WOBBLESAM_SLEEP_TEXT = "Lights out."
-_WOBBLESAM_SLEEP_Z = (("z", 26, 0), ("z", 34, 30), ("Z", 44, 66))   # (glyph, size, offset) off the full stop
+_WOBBLESAM_CARD = (8, 8, 791, 471)            # the printed card's black edge
+_WOBBLESAM_ROWS_X = (104, 724)                # the chart's letter column
+_WOBBLESAM_LABEL_X = 26                       # acuity fractions, flush left
+_WOBBLESAM_NUMBER_X = 770                     # line numbers, flush right
+_WOBBLESAM_TOP = 26                           # top of the top line's ink box
+_WOBBLESAM_BOTTOM = 432                       # rows end here; the byline sits below
+_WOBBLESAM_BYLINE_Y = 456                     # byline baseline
+_WOBBLESAM_TOP_MAX = 104                      # the top line's size range
+_WOBBLESAM_TOP_MIN = 40
+_WOBBLESAM_ROW_RATIO = 0.84                   # each row this much smaller than the last
+_WOBBLESAM_ROW_FLOOR = 18                     # no row is set smaller
+_WOBBLESAM_ROW_LEAD = 1.22                    # row pitch, as a multiple of its size
+_WOBBLESAM_LABEL_SIZE = 15
+_WOBBLESAM_BAR_GAP = 8                        # extra space under a line that carries a bar
+_WOBBLESAM_MAX_SPREAD = 16                    # most leftover height added to one row gap
+# The printed Snellen fractions, top line first; a line past the last has a
+# number and no fraction.
+_WOBBLESAM_ACUITY = ("20/200", "20/100", "20/70", "20/50", "20/40", "20/30", "20/25", "20/20", "20/15", "20/13", "20/10")
+# The two bars a chart prints under a line: green under 20/40, red under 20/20.
+_WOBBLESAM_BARS = {"20/40": "green", "20/20": "red"}
+_WOBBLESAM_TRAILING = '”"\'’.,;:!?'
+_WOBBLESAM_FALLBACK_TOP = "E"                 # the top line when no phrase is on the page
+_WOBBLESAM_SLEEP_ROWS = ("Z", "Z Z", "z z z", "z z z z", "z z z z z", "z z z z z z")
 
 
 def _wobblesam_font(size: int, *, bold: bool = False):
     return load_font([WOBBLESAM_BOLD if bold else WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES], size=size)
 
 
-def _wobblesam_paint_binding(draw: ImageDraw.ImageDraw, height: int) -> None:
-    """The spiral: a punched hole every 24 px, the wire running into it on a
-    slant from over the page's left edge."""
-    black = SPECTRA6["black"]
-    x = _WOBBLESAM_COIL_X
-    for y in range(_WOBBLESAM_COIL_PITCH // 2, height, _WOBBLESAM_COIL_PITCH):
-        draw.ellipse((x - 4, y - 4, x + 4, y + 4), fill=black)
-        draw.line((0, y - 9, x, y), fill=black, width=4)
+def _wobblesam_quote(quote_row: dict) -> tuple[list[tuple[str, bool]], str]:
+    """The quote as ``tokenize_quote`` segments, and the phrase as it reads in
+    the quote (empty when it is not there)."""
+    text = normalize_dashes(strip_underscore_emphasis(quote_row.get("display_quote") or "")).strip()
+    segments = [s for s in tokenize_quote(text, quote_row.get("matched_text") or "") if s[0]]
+    phrase = " ".join("".join(chunk for chunk, bold in segments if bold).split())
+    # ``tokenize_quote`` carries trailing punctuation into the phrase; the top
+    # line is the phrase alone.
+    return segments, phrase.rstrip(_WOBBLESAM_TRAILING).strip()
 
 
-def _wobblesam_paint_rules(draw: ImageDraw.ImageDraw, rules: list[int]) -> None:
-    """Blue ruled lines at the writing's own pitch, and the red margin line."""
-    for y in rules:
-        draw.line((_WOBBLESAM_RULE_X0, y, 799, y), fill=SPECTRA6["blue"], width=1)
-    x = _WOBBLESAM_MARGIN_X
-    draw.line((x, 0, x, 479), fill=SPECTRA6["red"], width=2)
+def _wobblesam_words(segments: list[tuple[str, bool]]) -> list[list[tuple[str, bool]]]:
+    """Whole words, each a list of styled pieces. A word is glued across a
+    segment seam (``"seven)"`` is one word, ``seven`` bold), so a row only
+    ever breaks at whitespace: ``wrap_styled_text``'s rule."""
+    words: list[list[tuple[str, bool]]] = []
+    open_word = False
+    for chunk, bold in segments:
+        for i, piece in enumerate(chunk.split(" ")):
+            if i:
+                open_word = False
+            if not piece:
+                continue
+            if open_word:
+                words[-1].append((piece, bold))
+            else:
+                words.append([(piece, bold)])
+                open_word = True
+    return words
 
 
-def _wobblesam_rules(placed: list, fallback_pitch: int = 38) -> tuple[list[int], int]:
-    """The rule rows, run from the quote's baselines so the writing sits on
-    them, and their pitch."""
-    if placed:
-        pitch = placed[0][6]
-        anchor = placed[0][1] + _font_ascent(placed[0][3]) + 3
-    else:
-        pitch = fallback_pitch
-        anchor = _WOBBLESAM_BODY[1] + pitch
-    first = anchor - ((anchor - _WOBBLESAM_RULE_TOP) // pitch) * pitch
-    return list(range(first, _WOBBLESAM_RULE_BOTTOM + 1, pitch)), pitch
+def _wobblesam_row_fonts(size: int):
+    return _wobblesam_font(size), _wobblesam_font(size, bold=True)
 
 
-def _wobblesam_paint_highlight(draw: ImageDraw.ImageDraw, placed: list, seed: int) -> None:
-    """A yellow highlighter swipe over the matched phrase: a band from just
-    under the cap height into the descenders, its long edges wavering and its
-    ends cut on a slant, one stroke per line."""
-    rng = random.Random(seed)
-    yellow = SPECTRA6["yellow"]
-    for x, y, chunk, font, is_bold, w, _lh in placed:
-        if not is_bold or not chunk.strip():
-            continue
-        lead = len(chunk) - len(chunk.lstrip())
-        trail = len(chunk) - len(chunk.rstrip())
-        x0 = x + (draw.textlength(chunk[:lead], font=font) if lead else 0) - 5
-        x1 = x + w - (draw.textlength(chunk[len(chunk) - trail:], font=font) if trail else 0) + 5
-        ascent, descent = font.getmetrics()
-        top, bottom = y + ascent * 0.32, y + ascent + descent * 0.55
-        steps = max(2, int((x1 - x0) // 14))
-        upper = [(x0 + (x1 - x0) * i / steps, top + rng.uniform(-1.5, 1.5)) for i in range(steps + 1)]
-        lower = [(x0 + (x1 - x0) * i / steps, bottom + rng.uniform(-1.5, 1.5)) for i in range(steps, -1, -1)]
-        slant = rng.uniform(3, 6)
-        upper[0] = (upper[0][0] + slant, upper[0][1])
-        lower[0] = (lower[0][0] + slant, lower[0][1])
-        draw.polygon(upper + lower, fill=yellow)
+def _wobblesam_word_width(draw, word, size: int) -> float:
+    regular, bold = _wobblesam_row_fonts(size)
+    return sum(draw.textlength(piece, font=bold if b else regular) for piece, b in word)
 
 
-def _wobblesam_target(placed: list) -> tuple[float, float]:
-    """Where the eyes look: the centre of the matched phrase's ink, or of the
-    body when the phrase is not on the page."""
-    points = [(x + w / 2, y + _font_ascent(font) * 0.7) for x, y, chunk, font, is_bold, w, _lh in placed
-              if is_bold and chunk.strip()]
-    if not points:
-        x0, y0, x1, y1 = _WOBBLESAM_BODY
-        return (x0 + x1) / 2, (y0 + y1) / 2
-    return sum(p[0] for p in points) / len(points), sum(p[1] for p in points) / len(points)
+def _wobblesam_pitch(size: int, index: int) -> float:
+    """Height a row of ``size`` px takes as chart line ``index``."""
+    return size * _WOBBLESAM_ROW_LEAD + (_WOBBLESAM_BAR_GAP if _wobblesam_bar(index) else 0)
 
 
-def _wobblesam_eyes(seed: int) -> list[tuple[int, int, int, str | None, bool]]:
-    """Three eyes on each edge, drawn from the slots: ``(cx, cy, r, iris, lashes)``."""
-    rng = random.Random(seed)
-    eyes = []
-    for slots in (_WOBBLESAM_LEFT_SLOTS, _WOBBLESAM_TOP_SLOTS):
-        for cx, cy, r in sorted(rng.sample(slots, _WOBBLESAM_EYES_PER_EDGE)):
-            eyes.append((cx, cy, r, rng.choice(_WOBBLESAM_IRISES), rng.random() < 0.5))
-    return eyes
+def _wobblesam_descend(draw, words, first: int, height: int, first_index: int):
+    """Set ``words`` in rows that shrink by ``_WOBBLESAM_ROW_RATIO`` from
+    ``first`` px down to the floor, the first of them chart line
+    ``first_index``. Returns ``[(size, [word, …]), …]``, or ``None`` when the
+    rows overrun ``height``."""
+    width = _WOBBLESAM_ROWS_X[1] - _WOBBLESAM_ROWS_X[0]
+    rows: list[tuple[int, list]] = []
+    used, i, n = 0.0, 0, 0
+    while i < len(words):
+        size = max(_WOBBLESAM_ROW_FLOOR, round(first * _WOBBLESAM_ROW_RATIO ** n))
+        space = draw.textlength(" ", font=_wobblesam_font(size))
+        row, line_w = [words[i]], _wobblesam_word_width(draw, words[i], size)
+        i += 1
+        while i < len(words):
+            w = _wobblesam_word_width(draw, words[i], size)
+            if line_w + space + w > width:
+                break
+            row.append(words[i])
+            line_w += space + w
+            i += 1
+        used += _wobblesam_pitch(size, first_index + n)
+        if used > height:
+            return None
+        rows.append((size, row))
+        n += 1
+    return rows
 
 
-def _wobblesam_paint_eye(draw: ImageDraw.ImageDraw, eye, target: tuple[float, float] | None) -> None:
-    """One marker eyeball looking at ``target``; shut, lashes down, with ``None``."""
-    cx, cy, r, iris, lashes = eye
-    black, white = SPECTRA6["black"], SPECTRA6["white"]
-    if target is None:
-        # Every shut eye gets lashes: a bare lid reads as a smile.
-        draw.arc((cx - r, cy - r, cx + r, cy + r), start=15, end=165, fill=black, width=3)
-        for deg in (55, 90, 125):
-            a = math.radians(deg)
-            sx, sy = cx + r * math.cos(a), cy + r * math.sin(a)
-            draw.line((sx, sy, sx + r * 0.45 * math.cos(a), sy + r * 0.45 * math.sin(a)), fill=black, width=3)
-        return
-    draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=white, outline=black, width=3)
-    if lashes:
-        for deg in (-125, -90, -55):
-            a = math.radians(deg)
-            sx, sy = cx + r * math.cos(a), cy + r * math.sin(a)
-            draw.line((sx, sy, sx + r * 0.45 * math.cos(a), sy + r * 0.45 * math.sin(a)), fill=black, width=3)
-    pupil = r * (0.34 if iris else 0.44)
-    extent = r * 0.6 if iris else pupil
-    dx, dy = target[0] - cx, target[1] - cy
-    dist = math.hypot(dx, dy) or 1.0
-    reach = max(0.0, r - 3 - extent)
-    px, py = cx + dx / dist * reach, cy + dy / dist * reach
-    if iris:
-        draw.ellipse((px - extent, py - extent, px + extent, py + extent), fill=SPECTRA6[iris])
-    draw.ellipse((px - pupil, py - pupil, px + pupil, py + pupil), fill=black)
-    glint = max(1.5, r * 0.12)
-    gx, gy = px - pupil * 0.4, py - pupil * 0.4
-    draw.ellipse((gx - glint, gy - glint, gx + glint, gy + glint), fill=white)
+def _wobblesam_top_line(draw, phrase: str) -> tuple[Any, list[str]]:
+    """The top line, the chart's big "E": the time phrase at the largest size
+    that fits on one line, or balanced over two, ellipsised only past that."""
+    width = _WOBBLESAM_ROWS_X[1] - _WOBBLESAM_ROWS_X[0]
+    text = phrase or _WOBBLESAM_FALLBACK_TOP
+    for size in range(_WOBBLESAM_TOP_MAX, _WOBBLESAM_TOP_MIN - 1, -4):
+        font = _wobblesam_font(size, bold=True)
+        if draw.textlength(text, font=font) <= width:
+            return font, [text]
+    words = text.split()
+    if len(words) > 1:
+        cut = min(range(1, len(words)), key=lambda k: abs(len(" ".join(words[:k])) - len(" ".join(words[k:]))))
+        halves = [" ".join(words[:cut]), " ".join(words[cut:])]
+        for size in range(_WOBBLESAM_TOP_MIN + 8, 31, -4):
+            font = _wobblesam_font(size, bold=True)
+            if all(draw.textlength(h, font=font) <= width for h in halves):
+                return font, halves
+    font, fitted = fit_text_to_width(draw, text, [WOBBLESAM_BOLD, *ORNAMENT_FONT_CANDIDATES], _WOBBLESAM_TOP_MIN, width,
+                                     floor=_WOBBLESAM_TOP_MIN)
+    return font, [fitted]
 
 
-def _wobblesam_paint_eyes(draw: ImageDraw.ImageDraw, eyes, target: tuple[float, float] | None) -> None:
-    for eye in eyes:
-        _wobblesam_paint_eye(draw, eye, target)
+def _wobblesam_paint_card(draw: ImageDraw.ImageDraw) -> None:
+    """The printed card: a black edge with rounded corners and a hairline
+    inside it."""
+    x0, y0, x1, y1 = _WOBBLESAM_CARD
+    draw.rounded_rectangle((x0, y0, x1, y1), radius=14, outline=SPECTRA6["black"], width=3)
+    draw.rounded_rectangle((x0 + 7, y0 + 7, x1 - 7, y1 - 7), radius=9, outline=SPECTRA6["black"], width=1)
 
 
-def _wobblesam_paint_byline(draw: ImageDraw.ImageDraw, quote_row: dict, rules: list[int], last_rule: int) -> None:
-    """Author and title in ballpoint blue, on the first free rule under the quote.
+def _wobblesam_label(index: int) -> str:
+    return _WOBBLESAM_ACUITY[index] if index < len(_WOBBLESAM_ACUITY) else ""
 
-    No ``fallback_title``: its ``#`` is one of the ASCII marks the face lacks,
-    and it is built here, after ``render``'s glyph fallbacks have run."""
-    author = (quote_row.get("author") or "").strip()
-    title = (quote_row.get("title") or "").strip()
-    text = ", ".join(p for p in (author, title) if p)
+
+def _wobblesam_bar(index: int) -> str | None:
+    """The ink of the bar under line ``index``, if it carries one."""
+    return _WOBBLESAM_BARS.get(_wobblesam_label(index))
+
+
+def _wobblesam_paint_margin(draw: ImageDraw.ImageDraw, index: int, baseline: int, mid: int) -> None:
+    """A line's acuity fraction on the left, its number on the right, and the
+    chart's green / red bar under the 20/40 and 20/20 lines."""
+    font = _wobblesam_font(_WOBBLESAM_LABEL_SIZE)
+    label = _wobblesam_label(index)
+    if label:
+        draw.text((_WOBBLESAM_LABEL_X, mid), label, font=font, fill=SPECTRA6["black"], anchor="lm")
+    draw.text((_WOBBLESAM_NUMBER_X, mid), str(index + 1), font=font, fill=SPECTRA6["black"], anchor="rm")
+    bar = _wobblesam_bar(index)
+    if bar:
+        draw.rectangle((_WOBBLESAM_LABEL_X, baseline + 6, _WOBBLESAM_NUMBER_X, baseline + 8), fill=SPECTRA6[bar])
+
+
+def _wobblesam_top_height(font, lines: list[str]) -> int:
+    ascent, descent = font.getmetrics()
+    return len(lines) * (ascent + descent + 8)
+
+
+def _wobblesam_paint_top(draw: ImageDraw.ImageDraw, font, lines: list[str], top: int) -> None:
+    """The top line(s), centred and solid black, ``_wobblesam_top_height`` tall."""
+    cx = sum(_WOBBLESAM_ROWS_X) // 2
+    ascent, descent = font.getmetrics()
+    y = top
+    for k, text in enumerate(lines):
+        baseline = y + ascent
+        draw.text((cx, baseline), text, font=font, fill=SPECTRA6["black"], anchor="ms")
+        _wobblesam_paint_margin(draw, k, baseline, baseline - ascent // 3)
+        y = baseline + descent + 8
+
+
+def _wobblesam_rows_spread(rows, first_index: int, height: float) -> tuple[float, float]:
+    """``(spread, total)``: the extra gap per row that shares out the height
+    left in ``height`` (capped, so a short chart does not float apart), and
+    the rows' total height with it."""
+    used = sum(_wobblesam_pitch(size, first_index + n) for n, (size, _w) in enumerate(rows))
+    spread = min(_WOBBLESAM_MAX_SPREAD, max(0.0, (height - used) / max(1, len(rows))))
+    return spread, used + spread * len(rows)
+
+
+def _wobblesam_paint_rows(draw: ImageDraw.ImageDraw, rows, top: float, first_index: int, spread: float) -> None:
+    """The descending rows, centred, the phrase's own words in Bold, each gap
+    widened by ``spread``."""
+    cx = sum(_WOBBLESAM_ROWS_X) // 2
+    y = float(top) + spread / 2
+    for n, (size, words) in enumerate(rows):
+        regular, bold = _wobblesam_row_fonts(size)
+        space = draw.textlength(" ", font=regular)
+        line_w = sum(_wobblesam_word_width(draw, w, size) for w in words) + space * (len(words) - 1)
+        baseline = int(y + _font_ascent(regular))
+        x = cx - line_w / 2
+        for word in words:
+            for piece, b in word:
+                draw.text((x, baseline), piece, font=bold if b else regular, fill=SPECTRA6["black"], anchor="ls")
+                x += draw.textlength(piece, font=bold if b else regular)
+            x += space
+        _wobblesam_paint_margin(draw, first_index + n, baseline, baseline - _font_ascent(regular) // 3)
+        y += _wobblesam_pitch(size, first_index + n) + spread
+
+
+def _wobblesam_paint_byline(draw: ImageDraw.ImageDraw, quote_row: dict) -> None:
+    """Author and title, small and centred under the chart."""
+    text = ", ".join(p for p in ((quote_row.get("author") or "").strip(), (quote_row.get("title") or "").strip()) if p)
     if not text:
         return
-    floor = max(_WOBBLESAM_BYLINE_MIN_Y, last_rule + 1)
-    free = [y for y in rules if y >= floor]
-    baseline = free[0] if free else _WOBBLESAM_RULE_BOTTOM
-    font, text = fit_text_to_width(draw, "— " + text, [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES], 26,
-                                   _WOBBLESAM_BYLINE_MAX_W, floor=18)
-    draw.text((_WOBBLESAM_BODY[0], baseline - 3), text, font=font, fill=SPECTRA6["blue"], anchor="ls")
+    width = _WOBBLESAM_ROWS_X[1] - _WOBBLESAM_ROWS_X[0]
+    font, text = fit_text_to_width(draw, text, [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES], 20, width, floor=14)
+    draw.text((sum(_WOBBLESAM_ROWS_X) // 2, _WOBBLESAM_BYLINE_Y), text, font=font, fill=SPECTRA6["black"], anchor="ms")
 
 
 def _wobblesam_finish(image: Image.Image, width: int, height: int) -> Image.Image:
@@ -183,56 +236,58 @@ def _wobblesam_finish(image: Image.Image, width: int, height: int) -> Image.Imag
 
 
 def render_wobblesam_frame(time_str: str, quote_row: dict, width: int, height: int) -> Image.Image:
-    """A spiral notebook page whose margin eyes look at the time (see docs/themes.md)."""
+    """An eye chart: the time phrase as the big top line, the quote in rows
+    that shrink beneath it (see docs/themes.md)."""
     del time_str
     image = Image.new("RGB", (800, 480), SPECTRA6["white"])
     draw = ImageDraw.Draw(image)
-    seed = _row_digest(quote_row) ^ _WOBBLESAM_SEED
-    placed = _place_quote(draw, quote_row, _WOBBLESAM_BODY, theme="wobblesam",
-                          font_max=52, font_min=18, line_height_mult=1.32)
-    if placed:
-        # Centre the block on the page's rule grid: a short quote sits mid-page.
-        x0, y0, x1, y1 = _WOBBLESAM_BODY
-        pitch = placed[0][6]
-        used = placed[-1][1] - placed[0][1] + pitch
-        dy = max(0, (y1 - y0 - used) // 2)
-        placed = [(x, y + dy, *rest) for x, y, *rest in placed]
-    rules, _pitch = _wobblesam_rules(placed)
-    _wobblesam_paint_highlight(draw, placed, seed)
-    _wobblesam_paint_rules(draw, rules)
-    _wobblesam_paint_binding(draw, 480)
-    for x, y, chunk, font, _is_bold, *_ in placed:
-        draw.text((x, y), chunk, font=font, fill=SPECTRA6["black"])
-    last = placed[-1][1] + _font_ascent(placed[-1][3]) + 3 if placed else _WOBBLESAM_BODY[3]
-    _wobblesam_paint_byline(draw, quote_row, rules, last)
-    _wobblesam_paint_eyes(draw, _wobblesam_eyes(seed), _wobblesam_target(placed))
+    _wobblesam_paint_card(draw)
+    segments, phrase = _wobblesam_quote(quote_row)
+    top_font, top_lines = _wobblesam_top_line(draw, phrase)
+    top_h = _wobblesam_top_height(top_font, top_lines) + 6
+    height_left = _WOBBLESAM_BOTTOM - _WOBBLESAM_TOP - top_h
+    words = _wobblesam_words(segments)
+    rows = None
+    # The biggest second line that lets the whole quote fit, one step down
+    # from the top line it hangs under.
+    for first in range(int(top_font.size * _WOBBLESAM_ROW_RATIO), _WOBBLESAM_ROW_FLOOR - 1, -2):
+        rows = _wobblesam_descend(draw, words, first, height_left, len(top_lines))
+        if rows is not None:
+            break
+    if rows is not None:
+        spread, rows_h = _wobblesam_rows_spread(rows, len(top_lines), height_left)
+        # A chart shorter than the card sits in its middle.
+        offset = max(0, int(height_left - rows_h) // 2)
+        _wobblesam_paint_top(draw, top_font, top_lines, _WOBBLESAM_TOP + offset)
+        rows_top = _WOBBLESAM_TOP + offset + top_h
+        _wobblesam_paint_rows(draw, rows, rows_top, len(top_lines), spread)
+    else:
+        _wobblesam_paint_top(draw, top_font, top_lines, _WOBBLESAM_TOP)
+        rows_top = _WOBBLESAM_TOP + top_h
+        # Too long to descend: set it level, fitted and truncated by the
+        # shared layout, under a chart that still has its top line.
+        placed = _place_quote(draw, quote_row, (_WOBBLESAM_ROWS_X[0], rows_top, _WOBBLESAM_ROWS_X[1], _WOBBLESAM_BOTTOM),
+                              theme="wobblesam", font_max=_WOBBLESAM_ROW_FLOOR, font_min=12, line_height_mult=1.2)
+        _paint_placed(draw, placed, SPECTRA6["black"], SPECTRA6["black"])
+    _wobblesam_paint_byline(draw, quote_row)
     return _wobblesam_finish(image, width, height)
 
 
 def render_wobblesam_sleep(time_str: str, width: int, height: int) -> Image.Image:
-    """The quiet-hours frame: the same page with every doodled eye shut,
-    "Lights out." on the middle rule, and a stack of z's off one eye.
-    ``time_str`` is unused: nothing on the frame tells the time."""
+    """The quiet-hours frame: the chart read in z's, a big "Z" on top and a
+    longer, smaller row of z's on every line down. ``time_str`` is unused."""
     del time_str
     image = Image.new("RGB", (800, 480), SPECTRA6["white"])
     draw = ImageDraw.Draw(image)
-    font = _wobblesam_font(64, bold=True)
-    x0, y0, x1, y1 = _WOBBLESAM_BODY
-    tw = draw.textlength(_WOBBLESAM_SLEEP_TEXT, font=font)
-    ascent = _font_ascent(font)
-    top = (y0 + y1) // 2 - ascent // 2
-    pitch = int(round(sum(font.getmetrics()) * 1.32))
-    placed = [((x0 + x1 - tw) // 2, top, _WOBBLESAM_SLEEP_TEXT, font, False, int(tw), pitch)]
-    rules, _pitch = _wobblesam_rules(placed)
-    _wobblesam_paint_rules(draw, rules)
-    _wobblesam_paint_binding(draw, 480)
-    draw.text(placed[0][:2], _WOBBLESAM_SLEEP_TEXT, font=font, fill=SPECTRA6["black"])
-    _wobblesam_paint_eyes(draw, _wobblesam_eyes(_WOBBLESAM_SEED), None)
-    # z's drifting up and away from the full stop, in ballpoint blue.
-    x, baseline = placed[0][0] + tw + 14, top + ascent
-    for glyph, size, offset in _WOBBLESAM_SLEEP_Z:
-        draw.text((x + offset, baseline - 18 - offset * 0.9), glyph, font=_wobblesam_font(size),
-                  fill=SPECTRA6["blue"], anchor="ls")
+    _wobblesam_paint_card(draw)
+    top_font, top_lines = _wobblesam_font(_WOBBLESAM_TOP_MAX, bold=True), [_WOBBLESAM_SLEEP_ROWS[0]]
+    _wobblesam_paint_top(draw, top_font, top_lines, _WOBBLESAM_TOP)
+    y = _WOBBLESAM_TOP + _wobblesam_top_height(top_font, top_lines) + 6
+    first = int(_WOBBLESAM_TOP_MAX * _WOBBLESAM_ROW_RATIO * 0.8)
+    rows = [(max(_WOBBLESAM_ROW_FLOOR, round(first * _WOBBLESAM_ROW_RATIO ** n)), [[(row, True)]])
+            for n, row in enumerate(_WOBBLESAM_SLEEP_ROWS[1:])]
+    spread, _h = _wobblesam_rows_spread(rows, 1, _WOBBLESAM_BOTTOM + 30 - y)
+    _wobblesam_paint_rows(draw, rows, y, 1, spread)
     return _wobblesam_finish(image, width, height)
 
 

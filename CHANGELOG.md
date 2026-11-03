@@ -9,11 +9,11 @@ canonical `vMAJOR.MINOR.PATCH` Git tags; the package version omits the leading
 Add release notes here as changes merge. The release preparation tool moves
 these entries under the new dated version heading.
 
-- New theme `wobblesam`: a spiral notebook page set in Wobblesam (Cast Iron
+- New theme `wobblesam`: an optician's eye chart set in Wobblesam (Cast Iron
   Type, OFL, newly bundled), a felt-marker face whose letters have eyes. The
-  rules sit on the quote's own baselines, the time phrase is highlighted, and
-  every eye doodled in the margins looks at it. It has its own sleep frame
-  with every eye shut.
+  time phrase is the chart's big top line, the quote follows in rows that
+  shrink beneath it with Snellen fractions down the side, and the chart's own
+  sleep frame is read in z's.
 - Missing-glyph fallbacks now fold accented Latin letters to their base
   letter and map `[`, `]`, `&`, the backtick, `•` and `æ œ ß ø` to ASCII, for faces that lack
   them; themes whose faces carry those glyphs are unchanged.

@@ -800,17 +800,17 @@ THEMES = {
         "ornament_light": SPECTRA6["yellow"],
         "source": SPECTRA6["black"],
     },
-    # A school-notebook page, a custom frame: black marker on white, the
-    # phrase highlighted yellow. Palette serves the palette-only paths.
+    # An eye chart, a custom frame: black on white with the chart's green
+    # and red bars. Palette serves the palette-only paths.
     "wobblesam": {
         "page_bg": SPECTRA6["white"],
         "text": SPECTRA6["black"],
-        "subtle": SPECTRA6["blue"],
-        "faint": SPECTRA6["blue"],
+        "subtle": SPECTRA6["black"],
+        "faint": SPECTRA6["green"],
         "accent": SPECTRA6["red"],
         "ornament_dark": SPECTRA6["black"],
-        "ornament_light": SPECTRA6["yellow"],
-        "source": SPECTRA6["blue"],
+        "ornament_light": SPECTRA6["green"],
+        "source": SPECTRA6["black"],
     },
     # *2001*'s Discovery monitors, a custom frame: white on the blue monitor,
     # yellow phrase. Palette serves the palette-only paths.
@@ -2367,7 +2367,7 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "ornament": [GOODMOUNTAIN_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "wobblesam": {
-        # Wobblesam: Regular body, Bold for the highlighted phrase.
+        # Wobblesam: Regular body, Bold for the phrase and the top line.
         "quote_regular": [WOBBLESAM_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
         "quote_bold": [WOBBLESAM_BOLD, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES],
