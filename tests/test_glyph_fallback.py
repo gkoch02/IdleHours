@@ -100,6 +100,23 @@ class TestApplyFallbacks:
         assert rq._apply_glyph_fallbacks("a--b", missing) == "a - b"
         assert rq._apply_glyph_fallbacks("and then—", missing) == "and then-"
 
+    def test_accented_letters_fold_to_their_base(self):
+        for ch, base in (("é", "e"), ("É", "E"), ("ç", "c"), ("ü", "u"), ("ō", "o"), ("Ł", "L")):
+            assert rq.GLYPH_FALLBACKS.get(ch) == (base if ch != "Ł" else None)
+        assert rq.GLYPH_FALLBACKS["æ"] == "ae" and rq.GLYPH_FALLBACKS["&"] == "and"
+
+    def test_wobblesam_rewrites_accents_and_brackets(self):
+        # Wobblesam is a beta with no accents and no "[ ] &".
+        row = _row("Émile & Co. [aside] at two o’clock.", "two o’clock", author="Zoë Brontë")
+        out = rq.apply_theme_glyph_fallbacks(row, "wobblesam")
+        assert out["display_quote"] == "Emile and Co. (aside) at two o’clock."
+        assert out["author"] == "Zoe Bronte"
+        assert out["matched_text"] == "two o’clock"
+
+    def test_faces_with_accents_keep_them(self):
+        row = _row("Émile & Co. [aside] at two o’clock.", "two o’clock")
+        assert rq.apply_theme_glyph_fallbacks(row, "default") is row
+
     @pytest.mark.parametrize("ch", sorted(rq.GLYPH_FALLBACKS))
     def test_fallbacks_are_ascii(self, ch):
         assert rq.GLYPH_FALLBACKS[ch].isascii()

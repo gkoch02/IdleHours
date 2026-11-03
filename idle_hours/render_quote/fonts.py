@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from PIL import ImageFont
@@ -138,8 +139,10 @@ _NOTDEF_PROBE = "\U0010FFFF"
 
 # Characters with an ASCII fallback, checked only when they occur in the text.
 # The em-dash is special-cased in ``_apply_glyph_fallbacks`` (spacing-aware);
-# its entry here is the bare fallback used at a text edge.
-GLYPH_FALLBACKS: dict[str, str] = {
+# its entry here is the bare fallback used at a text edge. The punctuation
+# alone is ``PUNCTUATION_FALLBACKS``, which the LED themes apply to every
+# character they meet whatever their face carries (``_gantry_chars``).
+PUNCTUATION_FALLBACKS: dict[str, str] = {
     "\u2026": "...",  # … horizontal ellipsis
     "\u2032": "'",  # ′ prime
     "\u2033": "''",  # ″ double prime
@@ -150,6 +153,40 @@ GLYPH_FALLBACKS: dict[str, str] = {
     "\u2014": "-",  # — em dash (see _EM_DASH_BETWEEN_RE)
     "\u2013": "-",  # – en dash
 }
+
+GLYPH_FALLBACKS: dict[str, str] = {
+    **PUNCTUATION_FALLBACKS,
+    # ASCII a beta face (Wobblesam) leaves out, as the corpus uses it: stage
+    # directions in brackets, firm names with an ampersand.
+    "[": "(",
+    "]": ")",
+    "&": "and",
+    "`": "'",
+    "\u2022": "*",  # • bullet (section-break rows)
+    # Ligatures and letters with no decomposition.
+    "\u00e6": "ae",
+    "\u00c6": "AE",
+    "\u0153": "oe",
+    "\u0152": "OE",
+    "\u00df": "ss",
+    "\u00f8": "o",
+    "\u00d8": "O",
+}
+
+
+def _accent_folds() -> dict[str, str]:
+    """Latin-1 and Latin Extended-A letters that decompose to an ASCII letter
+    plus combining marks (é → e, Ç → C), for a face with no accented letters."""
+    folds = {}
+    for cp in range(0xC0, 0x180):
+        ch = chr(cp)
+        base = "".join(c for c in unicodedata.normalize("NFD", ch) if not unicodedata.combining(c))
+        if base != ch and base.isascii() and base.isalpha():
+            folds[ch] = base
+    return folds
+
+
+GLYPH_FALLBACKS.update(_accent_folds())
 
 # An em dash between two non-space characters becomes a spaced hyphen: an
 # unspaced ``word-word`` would read as a hyphenated compound, and ``--`` cannot

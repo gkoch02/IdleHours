@@ -552,6 +552,11 @@ SCENARIOS: list[dict] = [
     # A theme's own sleep frame (``spec.sleep``), drawn in place of the
     # bundled sleep quote by ``render_sleep_frame``.
     {
+        "name": "sleep_wobblesam",
+        "mode": "sleep",
+        "theme": "wobblesam",
+    },
+    {
         "name": "sleep_redacted",
         "mode": "sleep",
         "theme": "redacted",

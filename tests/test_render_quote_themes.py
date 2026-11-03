@@ -9784,3 +9784,106 @@ class TestGoodmountainFrame:
         assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
 
 
+class TestWobblesamFrame:
+    """``wobblesam`` — an optician's eye chart in Wobblesam, the face whose
+    letters have eyes: the time phrase is the big top line, the quote shrinks
+    in rows beneath it."""
+
+    THEME = "wobblesam"
+    ROW = dict(
+        display_quote="It was at ten o’clock today that the first of all Time Machines began its career.",
+        matched_text="ten o’clock",
+        author="H. G. Wells",
+        title="The Time Machine",
+    )
+    LONG = " ".join(["The clock on the mantelpiece said ten minutes past three, and she had begun to "
+                     "suspect that the appointment had been forgotten by everyone concerned."] * 3)
+
+    @classmethod
+    def _render(cls, row=None, time_str="10:00", size=(800, 480)):
+        return rq.render(time_str, make_row(**(row or cls.ROW)), *size, mode="production", theme=cls.THEME)
+
+    @staticmethod
+    def _draw():
+        return ImageDraw.Draw(Image.new("RGB", (800, 480)))
+
+    def test_registered_everywhere(self):
+        from idle_hours import display_inky
+        assert self.THEME in rq.THEMES and self.THEME in rq.THEME_ORDER
+        assert display_inky.THEME_SATURATION[self.THEME] == 0.5
+        assert rq.theme_font_candidates(self.THEME, "quote_regular")[0].endswith("Wobblesam-Regular.ttf")
+        assert rq.theme_font_candidates(self.THEME, "quote_bold")[0].endswith("Wobblesam-Bold.ttf")
+
+    def test_top_line_is_the_phrase_without_its_punctuation(self):
+        wb = rq_themes.wobblesam
+        row = make_row(display_quote="He said it was ten minutes past three, and left.", matched_text="ten minutes past three")
+        segments, phrase = wb._wobblesam_quote(row)
+        assert phrase == "ten minutes past three"
+        assert "".join(chunk for chunk, _ in segments) == "He said it was ten minutes past three, and left."
+        assert wb._wobblesam_quote(make_row(display_quote="Nothing here.", matched_text="noon"))[1] == ""
+
+    def test_top_line_falls_back_to_e_and_wraps_a_long_phrase(self):
+        wb = rq_themes.wobblesam
+        assert wb._wobblesam_top_line(self._draw(), "")[1] == ["E"]
+        _font, lines = wb._wobblesam_top_line(self._draw(), "a quarter past eleven o'clock in the evening")
+        assert len(lines) == 2 and " ".join(lines) == "a quarter past eleven o'clock in the evening"
+
+    def test_rows_descend_and_keep_whole_words(self):
+        wb = rq_themes.wobblesam
+        segments, _ = wb._wobblesam_quote(make_row(**self.ROW))
+        words = wb._wobblesam_words(segments)
+        rows = wb._wobblesam_descend(self._draw(), words, 60, 400, 1)
+        assert rows is not None
+        sizes = [size for size, _ in rows]
+        assert sizes == sorted(sizes, reverse=True) and min(sizes) >= wb._WOBBLESAM_ROW_FLOOR
+        assert [w for _, row in rows for w in row] == words
+        # The phrase's pieces keep their Bold across the row seams.
+        assert "".join(p for w in words for p, b in w if b) == "teno’clock"
+
+    def test_words_glue_across_a_segment_seam(self):
+        wb = rq_themes.wobblesam
+        words = wb._wobblesam_words([("at (", False), ("seven", True), (") with", False)])
+        assert words == [[("at", False)], [("(", False), ("seven", True), (")", False)], [("with", False)]]
+
+    def test_descend_refuses_what_it_cannot_fit(self):
+        wb = rq_themes.wobblesam
+        words = wb._wobblesam_words([(self.LONG, False)])
+        assert wb._wobblesam_descend(self._draw(), words, 60, 120, 1) is None
+
+    def test_acuity_labels_and_bars(self):
+        wb = rq_themes.wobblesam
+        assert [wb._wobblesam_label(i) for i in (0, 4, 7)] == ["20/200", "20/40", "20/20"]
+        assert wb._wobblesam_label(len(wb._WOBBLESAM_ACUITY)) == ""
+        assert (wb._wobblesam_bar(4), wb._wobblesam_bar(7), wb._wobblesam_bar(5)) == ("green", "red", None)
+
+    def test_bars_follow_the_row_count(self):
+        green, red = rq.SPECTRA6["green"], rq.SPECTRA6["red"]
+        short = ink_counts(self._render(dict(self.ROW, display_quote="At ten o’clock.")))
+        assert short.get(green, 0) == short.get(red, 0) == 0
+        long = ink_counts(self._render(dict(self.ROW, display_quote="At ten o’clock. " + self.LONG)))
+        assert long.get(green, 0) > 500 and long.get(red, 0) > 500
+
+    def test_missing_glyphs_fall_back(self):
+        # The face has no accents, ampersand or brackets.
+        fancy = dict(self.ROW, display_quote="Émile & Co. [aside] at ten o’clock.")
+        plain = dict(self.ROW, display_quote="Emile and Co. (aside) at ten o’clock.")
+        assert pixel_bytes(self._render(fancy)) == pixel_bytes(self._render(plain))
+
+    def test_inks(self):
+        assert distinct_inks(self._render()) <= {rq.SPECTRA6[k] for k in ("white", "black", "red", "green")}
+
+    def test_degenerate_rows_still_render(self):
+        for row in (dict(display_quote="", matched_text="", author="", title=""),
+                    dict(display_quote="At noon.", matched_text="noon"),
+                    dict(display_quote=" ".join([self.LONG] * 4), matched_text="ten minutes past three")):
+            assert self._render(row).size == (800, 480)
+        assert self._render(size=(200, 120)).size == (200, 120)
+
+    def test_frame_ignores_the_clock(self):
+        assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
+
+    def test_sleep_frame_is_a_chart_of_zs(self):
+        sleep = rq.render_sleep_frame("23:00", 800, 480, theme=self.THEME)
+        assert sleep.size == (800, 480)
+        assert pixel_bytes(sleep) == pixel_bytes(rq.render_sleep_frame("04:10", 800, 480, theme=self.THEME))
+        assert pixel_bytes(sleep) != pixel_bytes(self._render())

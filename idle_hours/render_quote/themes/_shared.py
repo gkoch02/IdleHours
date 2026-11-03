@@ -18,7 +18,7 @@ import unicodedata
 from PIL import Image, ImageDraw
 
 from .._paths import BASE_DIR
-from ..fonts import GLYPH_FALLBACKS, font_has_glyph, load_font, theme_font_candidates
+from ..fonts import PUNCTUATION_FALLBACKS, font_has_glyph, load_font, theme_font_candidates
 from ..palette import SPECTRA6, SPECTRA6_PALETTE, BAYER_4x4, BAYER_8x8, gray_pixel_access, pixel_access
 from ..primitives import _flow_stroke_hash
 
@@ -317,7 +317,7 @@ def _autochrome_paint_garden_fallback(image: Image.Image) -> None:
 _GANTRY_SAMPLE = 8           # supersampling factor when reading the font's dots
 # Characters the face lacks, beyond what render's glyph fallbacks already
 # replaced: a sign can only show what its font carries.
-_GANTRY_STANDINS = {**GLYPH_FALLBACKS, "œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE",
+_GANTRY_STANDINS = {**PUNCTUATION_FALLBACKS, "œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE",
                     "£": "L", "ß": "ss",
                     # NFKD would give "3½" as "312": the face has no fraction slash.
                     # The leading space splits a mixed number into "3 1/2".

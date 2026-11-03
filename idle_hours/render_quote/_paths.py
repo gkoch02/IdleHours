@@ -120,6 +120,10 @@ IMFELLDOUBLEPICA_ITALIC = str(BASE_DIR / "fonts/im-fell-double-pica/IMFELLDouble
 # with the licence, no modification, no renaming) — a condensed, high-contrast fantasy serif
 # with ~30 fantasy pictograms in its emoji slots. One weight. ``goodmountain``'s every role.
 GOODMOUNTAIN_REGULAR = str(BASE_DIR / "fonts/goodmountain/Goodmountain-Regular.otf")
+# Wobblesam (Cast Iron Type, OFL) — a felt-marker alphabet whose letters have eyes; each letter
+# drawn three times, rotated along a line by ``calt``. Regular and Bold. ``wobblesam``'s every role.
+WOBBLESAM_REGULAR = str(BASE_DIR / "fonts/wobblesam/Wobblesam-Regular.ttf")
+WOBBLESAM_BOLD = str(BASE_DIR / "fonts/wobblesam/Wobblesam-Bold.ttf")
 # Bebas Neue (expedition numerals + label chrome) — condensed display caps, the face the same
 # game sets its UI numbers in. One static Regular.
 BEBASNEUE_REGULAR = str(BASE_DIR / "fonts/bebas-neue/BebasNeue-Regular.ttf")
