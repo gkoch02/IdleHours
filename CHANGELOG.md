@@ -9,6 +9,11 @@ canonical `vMAJOR.MINOR.PATCH` Git tags; the package version omits the leading
 Add release notes here as changes merge. The release preparation tool moves
 these entries under the new dated version heading.
 
+- New theme `pinball`: an early-80s pinball backbox set in RetroChunki
+  (Cast Iron Type, OFL, newly bundled), a sixteen-segment display face. The
+  book is the machine's name on a sunburst backglass, the time phrase lights
+  the score display, and the quote runs on the rows beneath with every unlit
+  segment ghosted. Its sleep frame is GAME OVER / INSERT COIN.
 - New theme `wobblesam`: an optician's eye chart set in Wobblesam (Cast Iron
   Type, OFL, newly bundled), a felt-marker face whose letters have eyes. The
   time phrase is the chart's big top line, the quote follows in rows that

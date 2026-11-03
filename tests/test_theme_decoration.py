@@ -121,6 +121,7 @@ CUSTOM_FRAME_THEMES = (
     "imprimatur",
     "goodmountain",
     "wobblesam",
+    "pinball",
 )
 
 # ``diags`` is the developer swatch panel, not a literary theme: it paints its

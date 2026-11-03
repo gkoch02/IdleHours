@@ -47,7 +47,7 @@ Every face the renderer sets ships under `idle_hours/fonts/` as package data, on
 | `archivo/` | OFL.txt | `control`, `redacted` | `witcher` |
 | `archivo-narrow/` | OFL.txt | `witcher` | — |
 | `atomic-age/` | OFL.txt | `atomic` | `fillmore` |
-| `bangers/` | OFL.txt | `comic` | `fillmore` |
+| `bangers/` | OFL.txt | `comic`, `pinball` | `fillmore` |
 | `barlow/` | OFL.txt | `expanse`, `lasvegas` | — |
 | `barlow-condensed/` | OFL.txt | `semiotic`, `witcher`, `expanse`, `lasvegas`, `bladerunner`, `gantry` | — |
 | `bebas-neue/` | OFL.txt | `expedition`, `splitflap` | — |
@@ -94,6 +94,7 @@ Every face the renderer sets ships under `idle_hours/fonts/` as package data, on
 | `playwrite-gb-j-guides/` | OFL.txt | `chalkboard` | — |
 | `press-start-2p/` | OFL.txt | `questline` | — |
 | `quicksand/` | OFL.txt | `izakaya` | — |
+| `retrochunki/` | OFL.txt | `pinball` | — |
 | `righteous/` | OFL.txt | `deco` | — |
 | `rye/` | OFL.txt | `saloon` | — |
 | `saira/` | OFL.txt | `seneschal`, `seneschal_light`, `atropos`, `saros` | — |
@@ -1562,6 +1563,22 @@ Imports `pick_quote` in-process (`pick_quote_module.select_quote`) and lays out 
 
     **Plumbing.** Nothing reads the time; the matched phrase carries it, and `time_str` is deleted at frame entry. The Snellen fractions are digits but not a time. Composed at the canonical 800×480 and NEAREST-downsampled (the `metro` convention). Saturation tier `0.5` (light ground).
 
+  - `pinball` (black backbox / a red, yellow and blue sunburst backglass with white stars / the book's title as the machine's name in Bangers, yellow outlined red and black, the author under it / a blue-bezelled display window / the matched phrase lit white on a big score row / the quote lit yellow on the sixteen-segment rows beneath, its phrase white / every unlit segment ghosted in a red-black stipple — **the backbox of an early-80s pinball machine**, the device sixteen-segment displays are best loved for). A custom-render frame (`render_pinball_frame`).
+
+    **The face sets the brief.** RetroChunki (Cast Iron Type) is a sixteen-segment display face: capitals, figures and a little punctuation, monospaced, with a narrow punctuation column after every cell as on the hardware, and an `ss01` "Unlit" set that draws each glyph's dark segments. The unlit layer is what makes a segment face read as a display rather than as type, so the frame is built on it. A supermarket pole display and the face's own origin (F. W. Wood's 1910 shipboard signal patent) were considered; the pole display overlapped `cardcatalog` / `redacted` paper, the signal was too obscure to read at a glance.
+
+    **A real cell grid.** `_pinball_units` turns the text into display cells, each a sixteen-segment character plus its punctuation column: a narrow mark (`! ' , . : ; ’`) rides the column of the cell before it, and one with nothing before it takes a blank cell. `_pinball_wrap` wraps whole words into a row of cells, and `_pinball_fit` takes the largest cell size, in 2 px steps, whose rows fit. Every cell of the grid is painted, used or not: its full sixteen segments (a glyph's lit layer plus its `ss01` layer, since a space draws nothing) ghosted, then the lit glyph over them. The ghost is red on a 1:1 checkerboard with black (`_pinball_stipple`), faint on the panel and in an RGB preview alike. Lit body segments are yellow, the nearest panel ink to amber plasma; the phrase lights white. On the calibrated panel the two inks are close in luminance, so the in-quote highlight is a hue shift; the score row carries the phrase.
+
+    **The score row.** The phrase alone, its trailing punctuation stripped, at a cell size from 60 px down to 24 px over at most two rows, centred, its own grid ghosted around it; with no phrase on the page it reads SPECIAL. A blue rule divides it from the quote rows, which are sized from 34 px (never larger than the score row's cells, less 6) down to 16 px. The longest baked quote (260 characters) fits at 18 px; past the floor a quote would be cut, ending in an ellipsis across three punctuation columns, and `TestPinballFrame` pins that the corpus never reaches it.
+
+    **What the display can show.** `_pinball_text` capitalises, folds accents, and maps the face's gaps the way a display would: curly and straight double quotes to `'`, dashes and brackets to `-`, the ellipsis to three full stops, `&` to AND. Any other character it lacks is a blank cell, never `.notdef`. The face has no `?`, so `_pinball_qhook` builds one from the cell's own segments, picked by their centroids from the all-segments mask (the two top half-bars, the upper right vertical, the right half of the middle bar, the lower centre vertical), with its dot in the punctuation column: the sixteen-segment question mark.
+
+    **Backglass.** Twenty-eight rays from a point below the band, cycling red, yellow, blue, yellow, cleared in a black disc behind the logo, and seeded white four-point stars. The title drops a subtitle that would make it too long, then shrinks to 30 px and ellipsises. The machine is generic: no real table, maker or logo.
+
+    **Sleep frame.** `render_pinball_sleep`: the machine in attract mode with nobody playing, GOOD NIGHT on the backglass, GAME OVER on the score row and INSERT COIN on the dark grid.
+
+    **Plumbing.** Nothing reads the time; the matched phrase carries it, and `time_str` is deleted at frame entry. Per-size cell masks are cached (`_pinball_cell`), so a frame renders in well under a second. Composed at the canonical 800×480 and NEAREST-downsampled (the `metro` convention). Saturation tier `0.7` (dark ground).
+
   - `saros` (black sky / diffusion-dithered red-and-gold corona / white Saira body / ember matched phrase, Orbitron wordmark and Michroma chrome — **Housemarque's *Saros* (2026)**, the eclipse that hangs over the colony of Carcosa). A custom-render frame (`render_saros_frame`).
 
     **The corona is painted in continuous tone and dithered, not stippled.** `_saros_corona_field` evaluates a radial profile per pixel at a quarter of panel resolution (`_SAROS_SKY_STEP`; a glow has no finer detail) and bicubic-upsamples it: a chromospheric rim decaying over 0.06 radii, a mid corona over 0.36, an outer haze over 1.1, and eight **streamers** (`_SAROS_STREAMERS` — angular Gaussian lobes that brighten the mid and outer terms along their axes, asymmetric on purpose, a few long plumes and short brushes rather than a halo). A **sunset band** rings the horizon (`_saros_dusk`, an exponential up from the ground line, strongest under the sun and a third as bright at the edges — what a total eclipse's horizon actually does, and what cuts every silhouette out of the sky), and a cold **blue haze** pools low on the left, away from the sun (`_saros_haze`). The photosphere disc and the moon are then painted sharp at full resolution, because the exposed sliver is the one hard edge in the sky, and the field is Floyd–Steinberg-dithered to K/R/Y/W + blue (`_SAROS_SKY_PALETTE`) — the `biomech` dusk recipe.
@@ -1818,6 +1835,7 @@ Imports `pick_quote` in-process (`pick_quote_module.select_quote`) and lays out 
   - `imprimatur` uses **IM Fell English SC** (Igino Marini, OFL), new to the bundle, for the heading, the initial, the opening line, the matched phrase and the byline, and its companion **IM Fell English** roman, already bundled for `alchemy` and `cartograph`, for the body. Marini's revival is a digitisation of the types Bishop John Fell bought for the Oxford press in the 1670s, inking irregularities and all, so the page's printing is the face's own. One weight each; the face carries the curly quotes, the em dash and ☞ but no type flowers.
   - `goodmountain` uses **Goodmountain** (Hermann S Designs, its designer's own licence; see `fonts/goodmountain/LICENSE.txt`), new to the bundle, for every role: title, body, matched phrase, headings, the quest giver and the reward pictograms. One weight, an OpenType CFF file; Pillow sets it directly. It carries the curly quotes, the em dash and the ellipsis, so no glyph fallbacks are needed. Its licence permits passing the file on with that licence but not modifying or renaming it, so it is bundled exactly as released (v1.00).
   - `wobblesam` uses **Wobblesam** (Cast Iron Type, OFL), new to the bundle: **Bold** for the top line and the phrase within the rows, **Regular** for the rest of the rows, the margins and the byline. Only the two static TTFs the theme sets are bundled (the release also has Light, Medium and a variable font). Each letter is drawn three times and the face's `calt` feature rotates the drawings along a line; Pillow applies it through raqm, so a doubled letter is never drawn twice the same way. Glyph coverage is in the theme paragraph.
+  - `pinball` uses **RetroChunki** (Cast Iron Type, OFL), new to the bundle, Bold only, for the score row and the quote rows, and **Bangers** (Vernon Adams, OFL), already bundled for `comic`, for the backglass title and author. RetroChunki has no lowercase and lacks `?`, brackets, double quotes and dashes; the theme paragraph says how each is shown.
   - `saros` uses **Saira** (Omnibus-Type, OFL) for the body, **Orbitron** (Matt McInerney, OFL) for the wordmark and **Michroma** (Vernon Adams, OFL) for the status chrome.
 
     **The game's faces.** The Game Font Library lists *Saros*'s faces as **Arame** (dmtr.org) as the main display face, **Tamba Sans** (Dharma Type) for text and **Korataki** (Typodermic) as the tertiary face; none is open, so each register gets the nearest open face.

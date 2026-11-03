@@ -97,6 +97,7 @@ from ._paths import (
     QUOTE_FONT_BOLD_CANDIDATES,
     QUOTE_FONT_REGULAR_CANDIDATES,
     QUOTE_FONT_SEMIBOLD_CANDIDATES,
+    RETROCHUNKI_BOLD,
     RIGHTEOUS_REGULAR,
     RYE_REGULAR,
     SAIRA_ITALIC_VARIABLE,
@@ -811,6 +812,18 @@ THEMES = {
         "ornament_dark": SPECTRA6["black"],
         "ornament_light": SPECTRA6["green"],
         "source": SPECTRA6["black"],
+    },
+    # A pinball backbox, a custom frame: yellow plasma segments on black,
+    # the phrase lit white. Palette serves the palette-only paths.
+    "pinball": {
+        "page_bg": SPECTRA6["black"],
+        "text": SPECTRA6["yellow"],
+        "subtle": SPECTRA6["yellow"],
+        "faint": SPECTRA6["red"],
+        "accent": SPECTRA6["white"],
+        "ornament_dark": SPECTRA6["red"],
+        "ornament_light": SPECTRA6["yellow"],
+        "source": SPECTRA6["yellow"],
     },
     # *2001*'s Discovery monitors, a custom frame: white on the blue monitor,
     # yellow phrase. Palette serves the palette-only paths.
@@ -2371,6 +2384,13 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "quote_regular": [WOBBLESAM_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
         "quote_bold": [WOBBLESAM_BOLD, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES],
+    },
+    "pinball": {
+        # RetroChunki, one weight: the display is set cell by cell in the
+        # frame; the backglass logo is Bangers.
+        "quote_regular": [RETROCHUNKI_BOLD, *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [RETROCHUNKI_BOLD, *QUOTE_FONT_BOLD_CANDIDATES],
+        "ornament": [BANGERS_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "redacted": {
         # Special Elite, one weight: the phrase differs by colour alone.
