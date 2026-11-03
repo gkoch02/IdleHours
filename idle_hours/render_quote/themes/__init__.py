@@ -93,6 +93,7 @@ from . import (
     vhs,
     vitrail,
     witcher,
+    wobblesam,
     yorha,
 )
 
@@ -187,5 +188,6 @@ THEME_MODULES = (
     vhs,
     vitrail,
     witcher,
+    wobblesam,
     yorha,
 )

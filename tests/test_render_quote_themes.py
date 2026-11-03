@@ -9784,3 +9784,109 @@ class TestGoodmountainFrame:
         assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
 
 
+class TestWobblesamFrame:
+    """``wobblesam`` — a spiral notebook page in Wobblesam: rules on the
+    quote's baselines, the phrase highlighted, the margin eyes looking at it."""
+
+    THEME = "wobblesam"
+    ROW = dict(
+        display_quote="It was at ten o’clock today that the first of all Time Machines began its career.",
+        matched_text="ten o’clock",
+        author="H. G. Wells",
+        title="The Time Machine",
+    )
+
+    @classmethod
+    def _render(cls, row=None, time_str="10:00", size=(800, 480)):
+        return rq.render(time_str, make_row(**(row or cls.ROW)), *size, mode="production", theme=cls.THEME)
+
+    @staticmethod
+    def _placed(row):
+        wb = rq_themes.wobblesam
+        draw = ImageDraw.Draw(Image.new("RGB", (800, 480)))
+        return wb._place_quote(draw, make_row(**row), wb._WOBBLESAM_BODY, theme="wobblesam",
+                               font_max=52, font_min=18, line_height_mult=1.32)
+
+    def test_registered_everywhere(self):
+        from idle_hours import display_inky
+        assert self.THEME in rq.THEMES and self.THEME in rq.THEME_ORDER
+        assert display_inky.THEME_SATURATION[self.THEME] == 0.5
+        assert rq.theme_font_candidates(self.THEME, "quote_regular")[0].endswith("Wobblesam-Regular.ttf")
+        assert rq.theme_font_candidates(self.THEME, "quote_bold")[0].endswith("Wobblesam-Bold.ttf")
+
+    def test_every_line_sits_on_a_rule(self):
+        wb = rq_themes.wobblesam
+        placed = self._placed(self.ROW)
+        rules, pitch = wb._wobblesam_rules(placed)
+        assert pitch == placed[0][6]
+        for _x, y, _chunk, font, *_ in placed:
+            assert y + wb._font_ascent(font) + 3 in rules
+
+    def test_eyes_look_at_the_target(self):
+        wb = rq_themes.wobblesam
+        white, black = rq.SPECTRA6["white"], rq.SPECTRA6["black"]
+        eye = (50, 50, 20, None, False)
+        for target, side in (((400, 50), 1), ((-300, 50), -1)):
+            image = Image.new("RGB", (100, 100), white)
+            wb._wobblesam_paint_eye(ImageDraw.Draw(image), eye, target)
+            # The pupil is the black inside the white of the eye.
+            inner = image.crop((36, 36, 65, 65))
+            xs = [x for x in range(inner.width) for y in range(inner.height) if inner.getpixel((x, y)) == black]
+            assert xs and (sum(xs) / len(xs) - inner.width / 2) * side > 4
+
+    def test_target_is_the_highlighted_phrase(self):
+        wb = rq_themes.wobblesam
+        tx, ty = wb._wobblesam_target(self._placed(self.ROW))
+        bold = [(x, y, w) for x, y, chunk, _f, is_bold, w, _lh in self._placed(self.ROW) if is_bold]
+        assert bold and min(x for x, _, _ in bold) <= tx <= max(x + w for x, _, w in bold)
+        none = dict(self.ROW, matched_text="zzz-no-match")
+        x0, y0, x1, y1 = wb._WOBBLESAM_BODY
+        assert wb._wobblesam_target(self._placed(none)) == ((x0 + x1) / 2, (y0 + y1) / 2)
+
+    def test_highlighter_marks_only_a_matched_phrase(self):
+        yellow = rq.SPECTRA6["yellow"]
+        assert ink_counts(self._render()).get(yellow, 0) > 2000
+        assert ink_counts(self._render(dict(self.ROW, matched_text="zzz-no-match"))).get(yellow, 0) == 0
+
+    def test_eyes_are_seeded_three_per_edge(self):
+        wb = rq_themes.wobblesam
+        eyes = wb._wobblesam_eyes(1234)
+        assert eyes == wb._wobblesam_eyes(1234)
+        assert sum(e[:3] in wb._WOBBLESAM_LEFT_SLOTS for e in eyes) == wb._WOBBLESAM_EYES_PER_EDGE
+        assert sum(e[:3] in wb._WOBBLESAM_TOP_SLOTS for e in eyes) == wb._WOBBLESAM_EYES_PER_EDGE
+        assert len({tuple(wb._wobblesam_eyes(seed)) for seed in range(12)}) > 1
+
+    def test_slots_clear_the_body_and_the_canvas(self):
+        wb = rq_themes.wobblesam
+        for cx, _cy, r in wb._WOBBLESAM_LEFT_SLOTS:
+            assert wb._WOBBLESAM_COIL_X + 4 < cx - r and cx + r < wb._WOBBLESAM_MARGIN_X - 2
+        for cx, cy, r in wb._WOBBLESAM_TOP_SLOTS:
+            # Lashes reach 0.45 r past the rim.
+            assert cy - r * 1.45 >= 0 and cy + r < wb._WOBBLESAM_RULE_TOP and cx + r < 800
+
+    def test_missing_glyphs_fall_back(self):
+        # The face has no accents, ampersand or brackets.
+        fancy = dict(self.ROW, display_quote="Émile & Co. [aside] at ten o’clock.")
+        plain = dict(self.ROW, display_quote="Emile and Co. (aside) at ten o’clock.")
+        assert pixel_bytes(self._render(fancy)) == pixel_bytes(self._render(plain))
+
+    def test_inks(self):
+        assert distinct_inks(self._render()) <= {rq.SPECTRA6[k] for k in ("white", "black", "red", "yellow", "green", "blue")}
+
+    def test_degenerate_rows_still_render(self):
+        for row in (dict(display_quote="", matched_text="", author="", title=""),
+                    dict(display_quote="At noon.", matched_text="noon")):
+            assert self._render(row).size == (800, 480)
+        assert self._render(size=(200, 120)).size == (200, 120)
+
+    def test_frame_ignores_the_clock(self):
+        assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
+
+    def test_sleep_frame_shuts_every_eye(self):
+        sleep = rq.render_sleep_frame("23:00", 800, 480, theme=self.THEME)
+        assert sleep.size == (800, 480)
+        counts = ink_counts(sleep)
+        # No highlighter, and no eye whites' irises: shut eyes are black lids only.
+        assert counts.get(rq.SPECTRA6["yellow"], 0) == 0
+        assert counts.get(rq.SPECTRA6["green"], 0) == 0
+        assert pixel_bytes(sleep) == pixel_bytes(rq.render_sleep_frame("04:10", 800, 480, theme=self.THEME))

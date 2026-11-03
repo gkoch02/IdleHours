@@ -62,6 +62,7 @@ THEME_SATURATION: dict[str, float] = {
     "synoptic": 0.5,
     "tarot": 0.5,
     "witcher": 0.5,
+    "wobblesam": 0.5,
     "yorha": 0.5,
     # Dark, coloured or bloom-heavy ground.
     "abyssal": 0.7,

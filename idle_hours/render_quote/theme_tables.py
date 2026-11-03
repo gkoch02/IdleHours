@@ -116,6 +116,8 @@ from ._paths import (
     TITILLIUM_SEMIBOLD,
     UNCIALANTIQUA_REGULAR,
     UNIFRAKTUR_BOOK,
+    WOBBLESAM_BOLD,
+    WOBBLESAM_REGULAR,
     YUJI_BOKU_REGULAR,
 )
 from .palette import SPECTRA6
@@ -797,6 +799,18 @@ THEMES = {
         "ornament_dark": SPECTRA6["black"],
         "ornament_light": SPECTRA6["yellow"],
         "source": SPECTRA6["black"],
+    },
+    # A school-notebook page, a custom frame: black marker on white, the
+    # phrase highlighted yellow. Palette serves the palette-only paths.
+    "wobblesam": {
+        "page_bg": SPECTRA6["white"],
+        "text": SPECTRA6["black"],
+        "subtle": SPECTRA6["blue"],
+        "faint": SPECTRA6["blue"],
+        "accent": SPECTRA6["red"],
+        "ornament_dark": SPECTRA6["black"],
+        "ornament_light": SPECTRA6["yellow"],
+        "source": SPECTRA6["blue"],
     },
     # *2001*'s Discovery monitors, a custom frame: white on the blue monitor,
     # yellow phrase. Palette serves the palette-only paths.
@@ -2351,6 +2365,12 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "quote_regular": [GOODMOUNTAIN_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
         "quote_bold": [GOODMOUNTAIN_REGULAR, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [GOODMOUNTAIN_REGULAR, *ORNAMENT_FONT_CANDIDATES],
+    },
+    "wobblesam": {
+        # Wobblesam: Regular body, Bold for the highlighted phrase.
+        "quote_regular": [WOBBLESAM_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [WOBBLESAM_BOLD, *QUOTE_FONT_BOLD_CANDIDATES],
+        "ornament": [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "redacted": {
         # Special Elite, one weight: the phrase differs by colour alone.
