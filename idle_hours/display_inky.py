@@ -106,6 +106,7 @@ THEME_SATURATION: dict[str, float] = {
     "nocturne": 0.7,
     "observation": 0.7,
     "outrun": 0.7,
+    "pinball": 0.7,
     "plaque": 0.7,
     "platform": 0.7,
     "pourjudgment": 0.7,

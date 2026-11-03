@@ -124,6 +124,9 @@ GOODMOUNTAIN_REGULAR = str(BASE_DIR / "fonts/goodmountain/Goodmountain-Regular.o
 # drawn three times, rotated along a line by ``calt``. Regular and Bold. ``wobblesam``'s every role.
 WOBBLESAM_REGULAR = str(BASE_DIR / "fonts/wobblesam/Wobblesam-Regular.ttf")
 WOBBLESAM_BOLD = str(BASE_DIR / "fonts/wobblesam/Wobblesam-Bold.ttf")
+# RetroChunki (Cast Iron Type, OFL) — a sixteen-segment display face, capitals, figures and a
+# punctuation column; ``ss01`` draws each glyph's unlit segments. Bold only. ``pinball``'s display.
+RETROCHUNKI_BOLD = str(BASE_DIR / "fonts/retrochunki/RetroChunki-Bold.ttf")
 # Bebas Neue (expedition numerals + label chrome) — condensed display caps, the face the same
 # game sets its UI numbers in. One static Regular.
 BEBASNEUE_REGULAR = str(BASE_DIR / "fonts/bebas-neue/BebasNeue-Regular.ttf")

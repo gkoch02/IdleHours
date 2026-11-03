@@ -9887,3 +9887,137 @@ class TestWobblesamFrame:
         assert sleep.size == (800, 480)
         assert pixel_bytes(sleep) == pixel_bytes(rq.render_sleep_frame("04:10", 800, 480, theme=self.THEME))
         assert pixel_bytes(sleep) != pixel_bytes(self._render())
+
+
+class TestPinballFrame:
+    """``pinball`` — an early-80s pinball backbox in RetroChunki: the book as
+    the machine, the phrase on the score display, the quote on the
+    sixteen-segment rows under it, every unlit segment ghosted."""
+
+    THEME = "pinball"
+    ROW = dict(
+        display_quote="It was at ten o’clock today that the first of all Time Machines began its career.",
+        matched_text="ten o’clock",
+        author="H. G. Wells",
+        title="The Time Machine",
+    )
+
+    @classmethod
+    def _render(cls, row=None, time_str="10:00", size=(800, 480)):
+        return rq.render(time_str, make_row(**(row or cls.ROW)), *size, mode="production", theme=cls.THEME)
+
+    def test_registered_everywhere(self):
+        from idle_hours import display_inky
+        assert self.THEME in rq.THEMES and self.THEME in rq.THEME_ORDER
+        assert display_inky.THEME_SATURATION[self.THEME] == 0.7
+        assert rq_themes.pinball._pinball_cell(24)[0].path.endswith("RetroChunki-Bold.ttf")
+
+    def test_generic_paths_get_a_face_that_sets_ordinary_text(self):
+        # The source card and the static message set mixed-case metadata
+        # through THEME_FONTS, with none of the frame's capitalising; a face
+        # with no lowercase there draws .notdef boxes.
+        for role in ("quote_regular", "quote_bold", "ornament"):
+            font = rq.load_font(rq.theme_font_candidates(self.THEME, role), size=32)
+            missing = [c for c in "aZ’“”—…é?" if not rq.font_has_glyph(font, c)]
+            assert not missing, f"{role}: {missing}"
+        card = rq.render("10:00", make_row(**self.ROW), 800, 480, mode="card", theme=self.THEME)
+        assert card.size == (800, 480)
+
+    def test_text_is_what_the_display_can_show(self):
+        pb = rq_themes.pinball
+        assert pb._pinball_text("Émile & Co. (aside) “yes”—no…") == "EMILE  AND  CO. -ASIDE- 'YES'-NO..."
+        assert pb._pinball_text("why?") == "WHY?"
+        # A character with no glyph and no mapping is a blank cell, never tofu.
+        assert pb._pinball_text("£5 #1") == " 5  1"
+
+    def test_narrow_marks_ride_the_cell_before(self):
+        pb = rq_themes.pinball
+        units = pb._pinball_units([("Go, now.", False)])
+        assert [(u[0], u[2]) for u in units] == [("G", ""), ("O", ","), (" ", ""), ("N", ""), ("O", ""), ("W", ".")]
+        # A mark with no letter before it takes a blank cell of its own.
+        assert [(u[0], u[2]) for u in pb._pinball_units([("'Twas", False)])][:2] == [(" ", "'"), ("T", "")]
+        # A question mark is its hook plus a dot in the column.
+        assert [(u[0], u[2]) for u in pb._pinball_units([("Who?", False)])][-1] == ("?", ".")
+
+    def test_phrase_cells_are_flagged(self):
+        pb = rq_themes.pinball
+        units = pb._pinball_units([("At ", False), ("ten o’clock", True), (".", False)])
+        lit = "".join((u[0] if u[1] else "") + (u[2] if u[3] else "") for u in units)
+        # The full stop rides the K's column but is not part of the phrase.
+        assert lit == "TEN O’CLOCK"
+        assert units[-1][2] == "." and units[-1][1] and not units[-1][3]
+
+    def test_qhook_is_five_segments(self):
+        pb = rq_themes.pinball
+        hook = pb._pinball_cell(60)[6]
+        w, h = hook.size
+        px = hook.load()
+        seen, parts = set(), 0
+        for y in range(h):
+            for x in range(w):
+                if px[x, y] and (x, y) not in seen:
+                    parts += 1
+                    stack = [(x, y)]
+                    seen.add((x, y))
+                    while stack:
+                        a, b = stack.pop()
+                        for q in ((a + 1, b), (a - 1, b), (a, b + 1), (a, b - 1)):
+                            if 0 <= q[0] < w and 0 <= q[1] < h and px[q] and q not in seen:
+                                seen.add(q)
+                                stack.append(q)
+        assert parts == 5
+
+    def test_wrap_breaks_at_spaces_and_fits(self):
+        pb = rq_themes.pinball
+        units = pb._pinball_units([("one two three four five six", False)])
+        rows = pb._pinball_wrap(units, 9)
+        assert ["".join(u[0] for u in r) for r in rows] == ["ONE TWO", "THREE", "FOUR FIVE", "SIX"]
+        assert all(len(r) <= 9 for r in rows)
+        assert ["".join(u[0] for u in r) for r in pb._pinball_wrap(pb._pinball_units([("abcdefghij", False)]), 4)] \
+            == ["ABCD", "EFGH", "IJ"]
+
+    def test_fit_truncates_with_an_ellipsis_only_past_the_floor(self):
+        pb = rq_themes.pinball
+        units = pb._pinball_units([("word " * 400, False)])
+        size, cols, rows = pb._pinball_fit(units, 700, 100, (30, 16))
+        assert size == 16 and len(rows) * size * pb._PINBALL_ROW_LEAD <= 100 + size * pb._PINBALL_ROW_LEAD
+        assert [u[2] for u in rows[-1][-3:]] == [".", ".", "."]
+
+    def test_longest_baked_quote_fits_untruncated(self):
+        pb = rq_themes.pinball
+        longest = max((r.get("display_quote") or "" for r in iter_jsonl(pathlib.Path(pq.DEFAULT_DATABASE_PATH))), key=len)
+        assert len(longest) > 200
+        units = pb._pinball_units([(longest, False)])
+        # The body's height under a one-row score display at its largest size.
+        size, _cols, rows = pb._pinball_fit(units, 732, 220, pb._PINBALL_BODY_SIZES)
+        assert size >= 18
+        assert [u for r in rows for u in r if not (u[0] == " " and not u[2])] == \
+            [u for u in units if not (u[0] == " " and not u[2])]
+
+    def test_inks(self):
+        assert distinct_inks(self._render()) <= {rq.SPECTRA6[k] for k in ("white", "black", "red", "yellow", "blue")}
+        counts = ink_counts(self._render())
+        assert counts[rq.SPECTRA6["white"]] > 1000, "the phrase is not lit"
+
+    def test_phrase_lights_white_on_the_score_row(self):
+        with_phrase = ink_counts(self._render())[rq.SPECTRA6["white"]]
+        without = ink_counts(self._render(dict(self.ROW, matched_text="zzz-no-match")))[rq.SPECTRA6["white"]]
+        # Unmatched, the score row still lights (SPECIAL) but the quote rows do not.
+        assert with_phrase > without > 0
+
+    def test_degenerate_rows_still_render(self):
+        for row in (dict(display_quote="", matched_text="", author="", title=""),
+                    dict(display_quote="At noon?", matched_text="noon"),
+                    dict(display_quote="a quarter past eleven o'clock in the evening, " * 6,
+                         matched_text="a quarter past eleven o'clock in the evening")):
+            assert self._render(row).size == (800, 480)
+        assert self._render(size=(200, 120)).size == (200, 120)
+
+    def test_frame_ignores_the_clock(self):
+        assert pixel_bytes(self._render(time_str="10:00")) == pixel_bytes(self._render(time_str="03:40"))
+
+    def test_sleep_frame_is_game_over(self):
+        sleep = rq.render_sleep_frame("23:00", 800, 480, theme=self.THEME)
+        assert sleep.size == (800, 480)
+        assert pixel_bytes(sleep) == pixel_bytes(rq.render_sleep_frame("04:10", 800, 480, theme=self.THEME))
+        assert pixel_bytes(sleep) != pixel_bytes(self._render())
