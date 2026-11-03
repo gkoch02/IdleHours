@@ -2416,6 +2416,11 @@ class TestThemeAndQuoteButtons:
         state.last_random_quote_id = state.last_quote_id
         for key, value in fields.items():
             setattr(state, key, value)
+        # A real draw always records itself in the recent-window
+        # (``_draw_random_theme_locked``). Without it a refilled bag can hand
+        # the current theme straight back, about once per pool size.
+        if "random_theme_recent" not in fields and state.current_random_theme:
+            state.random_theme_recent = [state.current_random_theme]
         return state
 
     def test_a_short_in_random_mode_rerolls_and_stays_random(self, tmp_path):
