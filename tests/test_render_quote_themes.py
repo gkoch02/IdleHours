@@ -9910,7 +9910,18 @@ class TestPinballFrame:
         from idle_hours import display_inky
         assert self.THEME in rq.THEMES and self.THEME in rq.THEME_ORDER
         assert display_inky.THEME_SATURATION[self.THEME] == 0.7
-        assert rq.theme_font_candidates(self.THEME, "quote_regular")[0].endswith("RetroChunki-Bold.ttf")
+        assert rq_themes.pinball._pinball_cell(24)[0].path.endswith("RetroChunki-Bold.ttf")
+
+    def test_generic_paths_get_a_face_that_sets_ordinary_text(self):
+        # The source card and the static message set mixed-case metadata
+        # through THEME_FONTS, with none of the frame's capitalising; a face
+        # with no lowercase there draws .notdef boxes.
+        for role in ("quote_regular", "quote_bold", "ornament"):
+            font = rq.load_font(rq.theme_font_candidates(self.THEME, role), size=32)
+            missing = [c for c in "aZ’“”—…é?" if not rq.font_has_glyph(font, c)]
+            assert not missing, f"{role}: {missing}"
+        card = rq.render("10:00", make_row(**self.ROW), 800, 480, mode="card", theme=self.THEME)
+        assert card.size == (800, 480)
 
     def test_text_is_what_the_display_can_show(self):
         pb = rq_themes.pinball

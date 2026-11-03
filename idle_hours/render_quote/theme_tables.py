@@ -97,7 +97,6 @@ from ._paths import (
     QUOTE_FONT_BOLD_CANDIDATES,
     QUOTE_FONT_REGULAR_CANDIDATES,
     QUOTE_FONT_SEMIBOLD_CANDIDATES,
-    RETROCHUNKI_BOLD,
     RIGHTEOUS_REGULAR,
     RYE_REGULAR,
     SAIRA_ITALIC_VARIABLE,
@@ -2386,10 +2385,12 @@ THEME_FONTS: dict[str, dict[str, list]] = {
         "ornament": [WOBBLESAM_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "pinball": {
-        # RetroChunki, one weight: the display is set cell by cell in the
-        # frame; the backglass logo is Bangers.
-        "quote_regular": [RETROCHUNKI_BOLD, *QUOTE_FONT_REGULAR_CANDIDATES],
-        "quote_bold": [RETROCHUNKI_BOLD, *QUOTE_FONT_BOLD_CANDIDATES],
+        # Bangers, the backglass face, for every generic path (the source
+        # card, the static message): they set mixed-case text as it comes.
+        # The frame sets its display in RetroChunki itself, cell by cell,
+        # after capitalising; that face has no lowercase.
+        "quote_regular": [BANGERS_REGULAR, *QUOTE_FONT_REGULAR_CANDIDATES],
+        "quote_bold": [BANGERS_REGULAR, *QUOTE_FONT_BOLD_CANDIDATES],
         "ornament": [BANGERS_REGULAR, *ORNAMENT_FONT_CANDIDATES],
     },
     "redacted": {
