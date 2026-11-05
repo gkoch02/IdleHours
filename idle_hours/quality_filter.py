@@ -76,6 +76,7 @@ BAD_PATTERNS = [
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the CLI: one cleaned-candidate JSONL in, one annotated JSONL out."""
     parser = argparse.ArgumentParser(description="Add quality annotations to cleaned quote candidates.")
     parser.add_argument("input", help="Cleaned candidate JSONL input")
     parser.add_argument(
@@ -87,6 +88,17 @@ def parse_args() -> argparse.Namespace:
 
 
 def score_quote(display_quote: str, display_fragment: bool, cleanup_status: str) -> tuple[int, list[str]]:
+    """Score one cleaned excerpt for how well it reads on the panel.
+
+    Starts at 100 and subtracts a fixed penalty for each flaw found: a
+    fragment, an incomplete cleanup, an awkward length, digits, structural
+    residue the cleaner left behind (headings, speaker cues, section breaks),
+    a ``BAD_PATTERNS`` register, a weak ending or an unbalanced quotation
+    mark. Returns ``(score, flags)``: the score floored at 0, and one flag per
+    penalty applied, in the order applied. The flags are what land in a row's
+    ``quality_flags``; a non-complete ``cleanup_status`` is flagged under its
+    own value.
+    """
     score = 100
     reasons: list[str] = []
 
@@ -178,6 +190,7 @@ def score_quote(display_quote: str, display_fragment: bool, cleanup_status: str)
 
 
 def main() -> int:
+    """Add ``quality_score`` and ``quality_flags`` to every row and write the result atomically."""
     args = parse_args()
     input_path = Path(args.input).expanduser().resolve()
     output_path = Path(args.output).expanduser().resolve()

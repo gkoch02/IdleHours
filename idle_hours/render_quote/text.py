@@ -11,10 +11,17 @@ from .theme_tables import _THEMES_WITHOUT_ORNAMENT_MARKS
 
 
 def draw_text(draw, xy, text, font, fill):
+    """Draw ``text`` in one solid ink: a plain ``ImageDraw.text`` call, kept as the single seam for it."""
     draw.text(xy, text, font=font, fill=fill)
 
 
 def draw_faux_gray_text(image: Image.Image, xy, text, font, dark=(0, 0, 0), light=(255, 255, 255), pattern_offset=(0, 0)):
+    """Draw ``text`` as a checkerboard of ``dark`` and ``light``, which reads as a mid grey on the panel.
+
+    The Spectra 6 has no grey ink, so the glyph pixels alternate between two
+    inks. ``pattern_offset`` shifts the checkerboard's phase, so neighbouring
+    runs can be kept in or out of step. Draws in place on ``image``.
+    """
     mask = Image.new("L", image.size, 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.text(xy, text, font=font, fill=255)

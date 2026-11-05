@@ -204,6 +204,19 @@ TIME_PATTERNS = [
 
 @dataclass
 class Candidate:
+    """One time phrase found in a source text: the row the miner writes, before any cleaning.
+
+    ``matched_text`` is the phrase itself and ``match_type`` the pattern that
+    found it. ``quote_text`` is the sentence around it and ``context_text`` a
+    wider window, both whitespace-collapsed. ``hour`` / ``minute`` (24-hour)
+    and ``normalized_time`` (``HH:MM``) are ``None`` for a daypart-only match,
+    which carries ``daypart_bucket`` alone; ``fuzzy_bucket`` is the five-minute
+    bucket key. ``line_number`` is where the match sits in the source, and
+    ``match_start`` / ``match_end`` are its offsets into the full source text,
+    not into ``quote_text``. One line can yield several candidates, so
+    ``(source_id, line_number)`` alone does not identify a row.
+    """
+
     source_path: str
     source_id: str | None
     match_type: str

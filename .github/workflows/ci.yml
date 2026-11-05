@@ -135,7 +135,7 @@ jobs:
         run: pytest -n auto --dist loadscope --ignore=tests/test_render_golden.py
 
       # A docs-only PR still runs every test that reads the docs (README
-      # rosters, CLAUDE.md size, documented script invocations, the font
+      # rosters, CLAUDE.md size, doc links, documented script invocations, the font
       # table): deleting a README line can break those. The list is fenced by
       # tests/test_ci_required_checks.py::TestDocsOnlyFences.
       - name: Run docs fences (docs-only change)
@@ -143,6 +143,7 @@ jobs:
         run: >-
           pytest -n auto --dist loadscope
           tests/test_claude_md_size.py
+          tests/test_docs_links.py
           tests/test_docs_script_invocations.py
           tests/test_docs_theme_registry.py
           tests/test_font_table.py
