@@ -18,6 +18,15 @@ BASE_DIR = Path(__file__).resolve().parent
 
 @dataclass
 class Record:
+    """One input row plus the normalised text the merge dedupes on.
+
+    ``raw`` is the row as read, untouched. ``canonical_quote`` and
+    ``canonical_context`` are its ``quote_text`` / ``context_text`` passed
+    through ``normalize_text`` (lower-cased, curly quotes folded, whitespace
+    collapsed, edge punctuation stripped); ``dedupe_key`` pairs the canonical
+    quote with the row's time fields.
+    """
+
     raw: dict
     canonical_quote: str
     canonical_context: str

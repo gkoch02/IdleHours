@@ -30,6 +30,12 @@ PLAIN_THEMES: frozenset[str] = frozenset({"default", "dark"})
 
 @dataclass(frozen=True)
 class Registry:
+    """Every non-plain theme, split by how it is drawn: theme name to its ``BorderSpec`` or ``FrameSpec``.
+
+    Built once at import by ``build_registry``, which guarantees each theme in
+    ``THEMES`` lands in exactly one of ``borders``, ``frames`` or ``PLAIN_THEMES``.
+    """
+
     borders: dict[str, BorderSpec]
     frames: dict[str, FrameSpec]
 
