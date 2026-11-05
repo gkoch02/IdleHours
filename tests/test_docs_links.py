@@ -40,8 +40,10 @@ SECTION_RE = re.compile(r"\b(docs/[A-Za-z0-9_]+\.md) ?§ ?([A-Za-z0-9_]+)((?:, ?
 EXTRA_SECTION_RE = re.compile(r"§ ?([A-Za-z0-9_]+)")
 
 # Where a section pointer may be written. ``data/`` holds Gutenberg texts,
-# whose own "§ 19" references are not ours.
+# whose own "§ 19" references are not ours. This module is skipped by the
+# scan: its docstrings and fixtures hold deliberately broken pointers.
 SECTION_POINTER_ROOTS = ("idle_hours", "scripts", "tests", "docs", "ops", "README.md", "CLAUDE.md")
+THIS_MODULE = Path(__file__).resolve()
 
 
 def _tracked(*pathspecs: str) -> list[Path]:
@@ -215,7 +217,7 @@ class TestRepoDocs:
         total = 0
         problems: list[str] = []
         for path in files:
-            if path.suffix in {".png", ".ttf", ".otf", ".jpg", ".gif", ".webp", ".ico", ".jsonl"}:
+            if path.resolve() == THIS_MODULE or path.suffix in {".png", ".ttf", ".otf", ".jpg", ".gif", ".webp", ".ico", ".jsonl"}:
                 continue
             checked, found = broken_section_pointers(path)
             total += checked
