@@ -1,7 +1,7 @@
 # Bucket Coverage Report
 
-- Total rows: **14221**
-- Displayable rows (quality ≥ 60, not banned): **11939**
+- Total rows: **14205**
+- Displayable rows (quality ≥ 60, not banned): **11930**
 - Expected buckets: **144**
 - Populated buckets: **144**
 - Populated before the quality floor / bans: **144**
@@ -42,10 +42,10 @@
 
 ## Daypart counts
 
-- `morning`: 6953
-- `night`: 3886
-- `dawn`: 2121
-- `noon`: 953
+- `morning`: 6948
+- `night`: 3878
+- `dawn`: 2119
+- `noon`: 952
 - `midnight`: 151
 - `evening`: 80
 - `dusk`: 70

@@ -254,7 +254,7 @@ It also repairs the **quarter/half swallow**: a legacy `oclock_word` row whose q
 
 ## Metadata Enrichment
 
-`enrich_metadata.py` walks each row's `source_id`, opens the cached `data/gutenberg/pg<id>.txt`, and scans the first 120 lines for `Title: ` and `Author: ` headers. Results are cached per `source_id` so each file is parsed once. Fills `title`/`author` only when missing — existing values on a row are preserved. Output: `idle_hours/assets/candidates-attributed.jsonl`, consumed by `apply_content_overrides.py` (the next stage) and then by `pick_quote.py`.
+`enrich_metadata.py` walks each row's `source_id`, opens the cached `data/gutenberg/pg<id>.txt`, and scans the first 120 lines for `Title: ` and `Author: ` headers. Results are cached per `source_id` so each file is parsed once. Fills `title`/`author` only when missing, and on every pass sets both in display form: `clean_title` cuts a catalogue subtitle ("Jane Eyre: An Autobiography") and title-cases library sentence case, `clean_author` drops a parenthetical expansion of initials ("H. C. (Herman Cyril) McNeile"). Output: `idle_hours/assets/candidates-attributed.jsonl`, consumed by `apply_content_overrides.py` (the next stage) and then by `pick_quote.py`.
 
 ## Content Overrides (`idle_hours/assets/content_overrides.json`)
 

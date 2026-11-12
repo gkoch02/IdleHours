@@ -921,3 +921,18 @@ class TestLeadingSectionSign:
     ])
     def test_a_section_cited_in_prose_stays(self, text):
         assert cdq.clean_edges(text) == text
+
+
+class TestTypesetDashes:
+    """Issue #467."""
+
+    @pytest.mark.parametrize("text, expected", [
+        ("glanced at his watch,--twenty minutes to six", "glanced at his watch,—twenty minutes to six"),
+        ("we three--Arthur, Quincey Morris, and myself--", "we three—Arthur, Quincey Morris, and myself—"),
+        ("“You actually mean----”", "“You actually mean——”"),
+        ("“_Mon Dieu!___” he ejaculated.", "“_Mon Dieu!_” he ejaculated."),
+        ("the ____ affair", "the ____ affair"),  # a suppressed name stays
+        ("a well-known man", "a well-known man"),
+    ])
+    def test_typeset(self, text, expected):
+        assert cdq.typeset_dashes(text) == expected

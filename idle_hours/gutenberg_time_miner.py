@@ -162,16 +162,20 @@ TIME_PATTERNS = [
     (
         # "gone four" is just past four; "getting on for ten", "going on for
         # ten" and "hard upon twelve" are just short of the hour. No o'clock
-        # needed, so a following quantity word ("gone four days") rejects,
-        # and a clock word must stand nearby ("gone one by one", "gone two
-        # steps" are the verb; see ``_has_clock_context``).
+        # needed, so a following quantity word ("gone four days") or a hyphen
+        # ("gone four-bells", "gone five-and-thirty years") rejects, and a
+        # clock word must stand nearby ("gone one by one", "gone two steps"
+        # are the verb; see ``_has_clock_context``). A bare "gone" also needs
+        # the clock as its subject ("it's gone four"; ``_gone_is_the_clock``).
         "gone_hour",
         re.compile(
             r"\b(?P<prefix>gone|getting\s+on\s+for|going\s+on\s+for|hard\s+upon)"
-            r"\s+(?P<hourword>one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b"
+            r"\s+(?P<hourword>one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b(?![-‐])"
             r"(?!\s+(?:years?|days?|months?|weeks?|hours?|minutes?|seconds?|miles?|yards?|feet|inches|pounds?|"
             r"shillings?|pence|francs?|dollars?|hundred|thousand|million|dozen|times|men|women|people|persons|"
             r"steps?|paces?|better|road|way|another|by\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b|"
+            r"afternoons?|mornings?|evenings?|nights?|quarters?|bells?|cables?|squares?|blocks?|leagues?|furlongs?|"
+            r"fathoms?|knots?|rounds?|"
             r"of|or|and|to|per|more|less|a\.m|p\.m))",
             re.IGNORECASE,
         ),
@@ -551,6 +555,23 @@ def _has_clock_context(text: str, match: re.Match[str]) -> bool:
 _FROM_BEFORE_RE = re.compile(r"\bfrom\s+$", re.IGNORECASE)
 
 
+_GONE_SUBJECT_RE = re.compile(
+    r"\b(?:it|it['’]s|just|only|long|already|clocks?|chimes?)(?:\s+\S+){0,2}\s+$",
+    re.IGNORECASE,
+)
+_OCLOCK_AFTER_RE = re.compile(r"\s+o['’]?clock\b", re.IGNORECASE)
+
+
+def _gone_is_the_clock(text: str, match: re.Match[str]) -> bool:
+    """Whether a bare "gone N" is the clock passing N ("it's gone four",
+    "only just gone three", "gone two o'clock") rather than someone having
+    gone somewhere ("she had gone one afternoon", "we had not gone two
+    cable-lengths")."""
+    if _OCLOCK_AFTER_RE.match(text, match.end()):
+        return True
+    return bool(_GONE_SUBJECT_RE.search(text[max(0, match.start() - 40) : match.start()]))
+
+
 def _is_a_range(text: str, match: re.Match[str]) -> bool:
     """"from five to seven" is a span of hours, not 6:55."""
     return bool(_FROM_BEFORE_RE.search(text, max(0, match.start() - 8), match.start()))
@@ -636,6 +657,8 @@ def candidate_from_match(source_path: str, source_id: str | None, text: str, mat
         if hour is None or not _has_clock_context(text, match):
             return None
         if re.match(r"gone", groups["prefix"], re.IGNORECASE):
+            if not _gone_is_the_clock(text, match):
+                return None
             minute = 3
         else:
             hour = 12 if hour == 1 else hour - 1
@@ -698,6 +721,28 @@ def candidate_from_match(source_path: str, source_id: str | None, text: str, mat
         match_start=match.start(),
         match_end=match.end(),
     )
+
+
+# Patterns whose phrase names one clock time with no help from the sentence
+# around it, so the phrase alone is enough to check a row's bucket.
+SELF_CONTAINED_MATCH_TYPES = frozenset({"oclock_word", "quarter_half", "quarter_to", "minutes_past_to"})
+
+
+def phrase_time(phrase: str) -> tuple[int, int] | None:
+    """The ``(hour, minute)`` a self-contained clock phrase names on its own
+    ("thirty-five minutes past ten" → ``(10, 35)``), or ``None`` when the
+    phrase is not one (a bare "five to seven" needs its sentence)."""
+    phrase = " ".join(phrase.split())
+    for match_type, pattern in TIME_PATTERNS:
+        if match_type not in SELF_CONTAINED_MATCH_TYPES:
+            continue
+        match = pattern.fullmatch(phrase)
+        if match is None:
+            continue
+        candidate = candidate_from_match("", None, phrase, match_type, match, 0)
+        if candidate is not None and candidate.hour is not None and candidate.minute is not None:
+            return candidate.hour, candidate.minute
+    return None
 
 
 def iter_candidates(
