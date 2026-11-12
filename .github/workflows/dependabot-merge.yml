@@ -1,8 +1,8 @@
 name: dependabot-merge
 
 # Squash-merges Dependabot PRs once every other check on the head commit has
-# passed: all GitHub Actions bumps (majors included) and minor/patch library
-# bumps. Library majors and anything with a failing check stay open, assigned
+# passed: all GitHub Actions bumps (majors included) and grouped (minor/patch)
+# library bumps. Library majors and anything with a failing check stay open, assigned
 # to the owner by dependabot.yml, for a human look. Lives in its own workflow
 # rather than as a `needs:` job so it covers every workflow and check (path-
 # filtered ones, CodeQL) and works on private repos without rulesets.
@@ -33,7 +33,11 @@ jobs:
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
       - name: Merge when every other check has passed
-        if: steps.meta.outputs.package-ecosystem == 'github_actions' || steps.meta.outputs.update-type != 'version-update:semver-major'
+        # Library updates merge only from a group: dependabot.yml groups minor
+        # and patch, so an ungrouped one is a major (or a security update).
+        # fetch-metadata's update-type can't be trusted for requirement ranges:
+        # it read "<2.0,>=1.10" → 2.4.1 as a minor bump.
+        if: steps.meta.outputs.package-ecosystem == 'github_actions' || steps.meta.outputs.dependency-group != ''
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.html_url }}
