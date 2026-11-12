@@ -369,8 +369,8 @@ systemctl status --no-pager idle-hours.service
 `Dockerfile` is a multi-stage, ARM64-first build without the Pi-only `[pi]` extra, for a headless instance:
 
 ```bash
-docker buildx build --platform linux/arm64,linux/amd64 -t idle-hours:3.1 .
-docker run --rm -p 8080:8080 -v idle-hours-state:/state idle-hours:3.1 idle-hours run \
+docker buildx build --platform linux/arm64,linux/amd64 -t idle-hours:3.2 .
+docker run --rm -p 8080:8080 -v idle-hours-state:/state idle-hours:3.2 idle-hours run \
   --buttons-off --skip-preflight --web-bind 0.0.0.0:8080 \
   --state-path /state/state.json --history-path /state/history.jsonl \
   --telemetry-path /state/telemetry.jsonl --pidfile /state/run_clock.pid
