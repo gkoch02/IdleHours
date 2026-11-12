@@ -2,6 +2,8 @@ version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
+    assignees:
+      - gkoch02
     schedule:
       interval: weekly
       day: monday
@@ -24,6 +26,8 @@ updates:
 
   - package-ecosystem: github-actions
     directory: "/"
+    assignees:
+      - gkoch02
     schedule:
       interval: weekly
       day: monday
@@ -37,9 +41,6 @@ updates:
       prefix: actions
       include: scope
     groups:
-      actions-minor-patch:
+      actions:
         patterns:
           - "*"
-        update-types:
-          - minor
-          - patch

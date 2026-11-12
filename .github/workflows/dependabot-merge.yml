@@ -1,0 +1,68 @@
+name: dependabot-merge
+
+# Squash-merges Dependabot PRs once every other check on the head commit has
+# passed: all GitHub Actions bumps (majors included) and minor/patch library
+# bumps. Library majors and anything with a failing check stay open, assigned
+# to the owner by dependabot.yml, for a human look. Lives in its own workflow
+# rather than as a `needs:` job so it covers every workflow and check (path-
+# filtered ones, CodeQL) and works on private repos without rulesets.
+# Merges made with GITHUB_TOKEN don't trigger push workflows on main.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: dependabot-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  dependabot-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Merge when every other check has passed
+        if: steps.meta.outputs.package-ecosystem == 'github_actions' || steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.html_url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Wait until all other check runs on the head commit are complete, and
+          # stay complete across a minute (later jobs queue after earlier ones).
+          settled=0
+          while :; do
+            runs=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name != "dependabot-merge") | "\(.status) \(.conclusion) \(.name)"')
+            if [ -z "$runs" ] || grep -qv '^completed ' <<<"$runs"; then
+              settled=0; sleep 30; continue
+            fi
+            bad=$(grep -vE '^completed (success|neutral|skipped) ' <<<"$runs" || true)
+            if [ -n "$bad" ]; then
+              echo "Not merging; failed checks:"; echo "$bad"; exit 0
+            fi
+            settled=$((settled + 1))
+            [ "$settled" -ge 2 ] && break
+            sleep 60
+          done
+          echo "All checks passed:"; echo "$runs"
+
+          state=$(gh pr view "$PR" --json mergeStateStatus --jq .mergeStateStatus)
+          if [ "$state" = BEHIND ]; then
+            # Rulesets that require an up-to-date branch: let Dependabot rebase,
+            # which reruns CI and this job.
+            gh pr comment "$PR" --body "@dependabot rebase"
+            exit 0
+          fi
+          gh pr merge "$PR" --squash   # repos auto-delete merged branches
