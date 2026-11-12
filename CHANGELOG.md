@@ -9,6 +9,16 @@ canonical `vMAJOR.MINOR.PATCH` Git tags; the package version omits the leading
 Add release notes here as changes merge. The release preparation tool moves
 these entries under the new dated version heading.
 
+## [3.2.0] - 2026-11-12
+
+- A quote found by a targeted search now takes its time from its own
+  phrase, not the default minute of the bucket being searched, so it no
+  longer turns up a few minutes off; six such rows that had a correct twin
+  are gone. "Gone four" counts as a time only when the clock is its subject
+  ("it's gone four"), which drops ten false rows such as "gone four
+  bells". Dashes typed as "--" are set as em dashes, book titles lose
+  catalogue subtitles and library sentence case, and authors lose
+  bracketed name expansions. The corpus is re-baked (#466, #467).
 - New theme `pinball`: an early-80s pinball backbox set in RetroChunki
   (Cast Iron Type, OFL, newly bundled), a sixteen-segment display face. The
   book is the machine's name on a sunburst backglass, the time phrase lights
