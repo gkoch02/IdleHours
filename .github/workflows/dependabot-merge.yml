@@ -46,10 +46,13 @@ jobs:
           while :; do
             # Check runs (Actions, CodeQL) plus commit statuses (e.g. Xcode
             # Cloud), the latter mapped onto the check-run vocabulary.
-            runs=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
-              --jq '.check_runs[] | select(.name != "dependabot-merge") | "\(.status) \(.conclusion) \(.name)"'
-              gh api "repos/$REPO/commits/$SHA/status" \
-              --jq '.statuses[] | if .state == "pending" then "pending - \(.context)" else "completed \(.state) \(.context)" end')
+            # Either request failing counts as not settled (retry), never as passed.
+            if ! runs=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+                  --jq '.check_runs[] | select(.name != "dependabot-merge") | "\(.status) \(.conclusion) \(.name)"' &&
+                gh api "repos/$REPO/commits/$SHA/status" \
+                  --jq '.statuses[] | if .state == "pending" then "pending - \(.context)" else "completed \(.state) \(.context)" end'); then
+              echo "API request failed; retrying"; settled=0; sleep 30; continue
+            fi
             if [ -z "$runs" ] || grep -qv '^completed ' <<<"$runs"; then
               settled=0; sleep 30; continue
             fi
