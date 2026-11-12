@@ -468,6 +468,27 @@ def drop_stray_underscores(text: str) -> str:
     return "".join(out)
 
 
+_DOUBLE_HYPHENS = re.compile(r"-{2,}")
+# An emphasis closer with a run of underscores stuck to it: "_Mon Dieu!___"
+# in the source, where the run is no suppressed name.
+_OVERRUN_CLOSER = re.compile(r"(?<=[^\s_])_{3}(?![_A-Za-z0-9])")
+
+
+def typeset_dashes(text: str) -> str:
+    """Set the typewriter dashes of a Gutenberg text as the printed book did.
+
+    Each ``--`` is an em dash, so a ``----`` interruption becomes ``——``
+    like the rows already typeset that way, and an odd hyphen left over goes
+    with its pair. An emphasis closer with a run of underscores stuck to it
+    (``_Enfin!___``) loses the run.
+    """
+    if "-" in text:
+        text = _DOUBLE_HYPHENS.sub(lambda m: "—" * (len(m.group(0)) // 2), text)
+    if "___" in text:
+        text = _OVERRUN_CLOSER.sub("_", text)
+    return text
+
+
 # A numbered section opening the excerpt, with any heading in capitals before
 # it: Wodehouse's "BAXTER SUSPECTS § 1 The five o'clock train…", "§ 6 The
 # hands of the clock…". A new sentence must follow, so a citation opening the
@@ -641,7 +662,7 @@ def main() -> int:
     for row in iter_jsonl(input_path):
         display_quote, is_fragment, cleanup_status = best_display_quote(row)
         # The time phrase is curled with its quote, so the renderers still find it.
-        row["display_quote"] = curl_quotes(display_quote)
+        row["display_quote"] = curl_quotes(typeset_dashes(display_quote))
         if isinstance(row.get("matched_text"), str):
             row["matched_text"] = curl_quotes(row["matched_text"])
         row["display_fragment"] = is_fragment

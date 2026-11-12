@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from idle_hours.import_targeted_hits import minute_for_bucket, row_from_targeted
 
 
@@ -90,36 +92,46 @@ class TestRowFromTargeted:
         assert row["line_number"] == 42
 
     def test_daypart_morning_hour(self):
-        row = row_from_targeted(self._raw(resolved_bucket="h9_exact"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h9_exact"))
         assert row["daypart_bucket"] == "morning"
 
     def test_daypart_noon(self):
-        row = row_from_targeted(self._raw(resolved_bucket="h12_exact"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h12_exact"))
         assert row["daypart_bucket"] == "noon"
 
     def test_daypart_midnight(self):
-        row_from_targeted(self._raw(resolved_bucket="h12_half_past"))
+        row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h12_half_past"))
         # h12 maps to noon in DAYPARTS
-        row2 = row_from_targeted(self._raw(resolved_bucket="h1_exact"))
+        row2 = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h1_exact"))
         assert row2["daypart_bucket"] == "night"
 
     def test_daypart_dawn(self):
-        row = row_from_targeted(self._raw(resolved_bucket="h5_exact"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h5_exact"))
         assert row["daypart_bucket"] == "dawn"
 
     def test_daypart_unknown_hour_defaults_to_night(self):
         # Hours > 12 not in DAYPARTS — falls back to "night"
         # Import and override the raw resolved_bucket so hour12 is still 1-12
         # Use h1 which maps to "night" at value 1 in DAYPARTS
-        row = row_from_targeted(self._raw(resolved_bucket="h1_exact"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h1_exact"))
         assert row["daypart_bucket"] == "night"
 
     def test_normalized_time_format(self):
-        row = row_from_targeted(self._raw(resolved_bucket="h1_exact"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h1_exact"))
         assert row["normalized_time"] == "01:00"
 
+    @pytest.mark.parametrize("phrase, coarse, time, bucket", [
+        ("twenty minutes to two", "h1_twenty_five_past", "01:40", "h1_twenty_to"),
+        ("thirty-five minutes past ten", "h10_twenty_five_past", "10:35", "h10_twenty_five_to"),
+        ("five minutes past eleven", "h11_ten_past", "11:05", "h11_five_past"),
+    ])
+    def test_time_comes_from_the_phrase_not_the_search(self, phrase, coarse, time, bucket):
+        # Issue #466: these shipped at the default minute of the bucket searched for.
+        row = row_from_targeted(self._raw(matched_text=phrase, resolved_bucket=coarse))
+        assert (row["normalized_time"], row["fuzzy_bucket"], row["resolved_bucket"]) == (time, bucket, bucket)
+
     def test_half_past_minute_value(self):
-        row = row_from_targeted(self._raw(resolved_bucket="h6_half_past"))
+        row = row_from_targeted(self._raw(matched_text="about then", resolved_bucket="h6_half_past"))
         assert row["minute"] == 30
         assert row["normalized_time"] == "06:30"
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from idle_hours import atomic_io
@@ -28,14 +29,57 @@ _AUTHOR_FIXUPS = {
 }
 
 
+# A catalogue expansion of the initials: "H. C. (Herman Cyril) McNeile".
+_AUTHOR_EXPANSION = re.compile(r"\s*\([^)]*\)")
+
+
 def clean_author(author: str) -> str:
     if author in _AUTHOR_FIXUPS:
         return _AUTHOR_FIXUPS[author]
+    author = " ".join(_AUTHOR_EXPANSION.sub("", author).split())
     lowered = author.lower()
     for prefix in _LEADING_TITLE_PREFIXES:
         if lowered.startswith(prefix):
             return author[len(prefix):].strip()
     return author
+
+
+# Titles the generic rule gets wrong, keyed by the title it produces.
+_TITLE_FIXUPS = {
+    "A Christmas Carol in Prose": "A Christmas Carol",
+    "Moby Dick": "Moby-Dick",
+    # Gutenberg files The Singing Bone under its American title.
+    "The Adventures of Dr. Thorndyke": "The Singing Bone",
+}
+_SUBTITLE = re.compile(r"\s*[:;]\s.*$")
+_TRAILING_PARENTHETICAL = re.compile(r"\s*\([^)]*\)$")
+_TITLE_QUOTES = "\"“”"
+# Lower case inside a title, as the printed books set them.
+_TITLE_SMALL_WORDS = frozenset(
+    "a an the and but or nor for so yet as at by in of off on per to up via from into onto upon with de des du la le les von van".split()
+)
+
+
+def clean_title(title: str) -> str:
+    """The title as a book's spine prints it, for attributions in little room.
+
+    Gutenberg's catalogue form carries the subtitle ("Jane Eyre: An
+    Autobiography", "The Manxman : a novel", "Moby Dick; Or, The Whale") and
+    library sentence case ("The Maltese falcon"). The subtitle goes, and each
+    word but the small ones is capitalised; a word with a capital already
+    ("d'Urbervilles", "McTeague") is left as it is.
+    """
+    title = _TRAILING_PARENTHETICAL.sub("", _SUBTITLE.sub("", " ".join(title.split())))
+    title = title.strip().strip(_TITLE_QUOTES).strip()
+    words = title.split(" ")
+    for i, word in enumerate(words):
+        if not word or any(ch.isupper() for ch in word):
+            continue
+        if i > 0 and word.lower() in _TITLE_SMALL_WORDS and not words[i - 1].endswith((":", "—")):
+            continue
+        words[i] = word[0].upper() + word[1:]
+    title = " ".join(words)
+    return _TITLE_FIXUPS.get(title, title)
 
 
 def parse_args() -> argparse.Namespace:
@@ -88,8 +132,9 @@ def main() -> int:
             parsed_title, parsed_author = metadata_cache[source_id]
             title = title or parsed_title
             author = author or parsed_author
-        row["title"] = title
-        row["author"] = author
+        # Cleaned every pass, so rows enriched before a rule existed get it too.
+        row["title"] = clean_title(title) if title else title
+        row["author"] = clean_author(author) if author else author
         rows.append(row)
 
     atomic_io.atomic_write_lines(

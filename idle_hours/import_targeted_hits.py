@@ -7,7 +7,8 @@ import json
 from pathlib import Path
 
 from idle_hours import atomic_io
-from idle_hours.buckets import DEFAULT_BUCKET_MINUTES
+from idle_hours.buckets import DEFAULT_BUCKET_MINUTES, bucket_for_time
+from idle_hours.gutenberg_time_miner import phrase_time
 from idle_hours.jsonl_io import iter_jsonl
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,8 +50,16 @@ def minute_for_bucket(bucket: str) -> tuple[int, int, str]:
 
 
 def row_from_targeted(raw: dict) -> dict:
+    """The candidate row for one targeted hit. Its time comes from the
+    matched phrase when the phrase names one on its own; the search's bucket
+    is only a fallback: a hit for a bucket's search can name another time,
+    and "twenty minutes to two" once shipped at 1:25 (issue #466)."""
     resolved_bucket = raw["resolved_bucket"]
     hour12, minute, _state = minute_for_bucket(resolved_bucket)
+    parsed = phrase_time(raw.get("matched_text") or "")
+    if parsed is not None:
+        hour12, minute = parsed
+        resolved_bucket = bucket_for_time(f"{hour12:02d}:{minute:02d}")
     normalized_time = f"{hour12:02d}:{minute:02d}"
     daypart = DAYPARTS.get(hour12, "night")
     return {

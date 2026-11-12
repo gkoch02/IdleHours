@@ -479,9 +479,47 @@ class TestGoneHourMatchType:
         "He had gone two steps when the clock struck.",
         "They pressed hard on one another in the morning crush.",
         "He had gone four without a word to anyone.",   # no clock word at all: the verb reading is as likely
+        # Issue #466: shipped rows that were someone going, not the clock.
+        "At the beginning of the season she had gone one afternoon to hear Paderewski's recital.",
+        "You'll only be gone one night, and Jip will take care of me.",
+        "We had not gone two cable-lengths, when a hundred savages entered the water.",
+        "Scrooge lay in this state until the chime had gone three quarters more.",
+        "It's just gone four bells, Mr Troubridge, and there's daylight enough.",
+        "It had just gone six-bells, when I saw a bright light in the morning sky.",
+        "A man would come smiling into a place out of which he had gone five-and-thirty years before.",
+        "Before he had gone two squares the rain was driving across the street at noon.",
+        "I had not gone ten jolted and creaking yards, when something went snap at midnight.",
     ])
     def test_the_verb_is_not_an_hour(self, text):
         assert _first_candidate(text, "gone_hour") is None
+
+    @pytest.mark.parametrize("text", [
+        "It had gone two o'clock. The morning's work was done.",
+        "\"But it's only gone three!\" said George, when the clock had finished.",
+        "The city clocks had only just gone three, but it was quite dark already.",
+        "I seldom go to my tea until it's gone five.",
+        "\"Not long gone seven,\" said the girl. \"How do you feel tonight, Bill?\"",
+        "Mr. Jones didn't promise that till nine o'clock, and it haven't gone eight.",
+    ])
+    def test_the_clock_having_gone_is_an_hour(self, text):
+        assert _first_candidate(text, "gone_hour") is not None
+
+
+class TestPhraseTime:
+    @pytest.mark.parametrize("phrase, expected", [
+        ("thirty-five minutes past ten", (10, 35)),
+        ("twenty minutes to two", (1, 40)),
+        ("five minutes past eleven", (11, 5)),
+        ("quarter to one", (12, 45)),
+        ("half-past six", (6, 30)),
+        ("ten o’clock", (10, 0)),
+    ])
+    def test_a_self_contained_phrase_names_its_time(self, phrase, expected):
+        assert miner.phrase_time(phrase) == expected
+
+    @pytest.mark.parametrize("phrase", ["five to seven", "gone four", "nearly six o’clock", "dawn", ""])
+    def test_a_phrase_that_needs_its_sentence_names_none(self, phrase):
+        assert miner.phrase_time(phrase) is None
 
 
 class TestStrokeOfMatchType:

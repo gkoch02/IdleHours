@@ -1,6 +1,6 @@
 {
-  "total_rows": 14221,
-  "displayable_rows": 11939,
+  "total_rows": 14205,
+  "displayable_rows": 11930,
   "banned_rows": 39,
   "min_quality": 60,
   "total_expected_buckets": 144,
@@ -10,11 +10,11 @@
   "coverage_percent": 100.0,
   "bucket_counts": {
     "h1_exact": 508,
-    "h1_five_past": 13,
+    "h1_five_past": 11,
     "h1_ten_past": 7,
     "h1_quarter_past": 45,
     "h1_twenty_past": 8,
-    "h1_twenty_five_past": 8,
+    "h1_twenty_five_past": 7,
     "h1_half_past": 128,
     "h1_twenty_five_to": 10,
     "h1_twenty_to": 8,
@@ -22,7 +22,7 @@
     "h1_ten_to": 7,
     "h1_five_to": 31,
     "h2_exact": 561,
-    "h2_five_past": 15,
+    "h2_five_past": 14,
     "h2_ten_past": 13,
     "h2_quarter_past": 19,
     "h2_twenty_past": 5,
@@ -34,7 +34,7 @@
     "h2_ten_to": 10,
     "h2_five_to": 42,
     "h3_exact": 593,
-    "h3_five_past": 13,
+    "h3_five_past": 12,
     "h3_ten_past": 10,
     "h3_quarter_past": 18,
     "h3_twenty_past": 15,
@@ -95,7 +95,7 @@
     "h7_five_to": 43,
     "h8_exact": 682,
     "h8_five_past": 21,
-    "h8_ten_past": 12,
+    "h8_ten_past": 11,
     "h8_quarter_past": 35,
     "h8_twenty_past": 11,
     "h8_twenty_five_past": 5,
@@ -122,7 +122,7 @@
     "h10_ten_past": 12,
     "h10_quarter_past": 45,
     "h10_twenty_past": 10,
-    "h10_twenty_five_past": 5,
+    "h10_twenty_five_past": 4,
     "h10_half_past": 293,
     "h10_twenty_five_to": 7,
     "h10_twenty_to": 5,
@@ -131,7 +131,7 @@
     "h10_five_to": 42,
     "h11_exact": 665,
     "h11_five_past": 11,
-    "h11_ten_past": 11,
+    "h11_ten_past": 10,
     "h11_quarter_past": 44,
     "h11_twenty_past": 23,
     "h11_twenty_five_past": 5,
@@ -143,7 +143,7 @@
     "h11_five_to": 33,
     "h12_exact": 399,
     "h12_five_past": 13,
-    "h12_ten_past": 7,
+    "h12_ten_past": 6,
     "h12_quarter_past": 27,
     "h12_twenty_past": 6,
     "h12_twenty_five_past": 8,
@@ -156,11 +156,11 @@
   },
   "raw_bucket_counts": {
     "h1_exact": 576,
-    "h1_five_past": 14,
+    "h1_five_past": 12,
     "h1_ten_past": 9,
     "h1_quarter_past": 51,
     "h1_twenty_past": 10,
-    "h1_twenty_five_past": 10,
+    "h1_twenty_five_past": 9,
     "h1_half_past": 146,
     "h1_twenty_five_to": 11,
     "h1_twenty_to": 12,
@@ -168,7 +168,7 @@
     "h1_ten_to": 9,
     "h1_five_to": 40,
     "h2_exact": 643,
-    "h2_five_past": 20,
+    "h2_five_past": 18,
     "h2_ten_past": 18,
     "h2_quarter_past": 20,
     "h2_twenty_past": 8,
@@ -180,7 +180,7 @@
     "h2_ten_to": 10,
     "h2_five_to": 44,
     "h3_exact": 685,
-    "h3_five_past": 14,
+    "h3_five_past": 13,
     "h3_ten_past": 15,
     "h3_quarter_past": 24,
     "h3_twenty_past": 17,
@@ -192,7 +192,7 @@
     "h3_ten_to": 9,
     "h3_five_to": 48,
     "h4_exact": 618,
-    "h4_five_past": 11,
+    "h4_five_past": 9,
     "h4_ten_past": 6,
     "h4_quarter_past": 31,
     "h4_twenty_past": 8,
@@ -204,7 +204,7 @@
     "h4_ten_to": 22,
     "h4_five_to": 36,
     "h5_exact": 579,
-    "h5_five_past": 14,
+    "h5_five_past": 13,
     "h5_ten_past": 11,
     "h5_quarter_past": 33,
     "h5_twenty_past": 19,
@@ -216,7 +216,7 @@
     "h5_ten_to": 10,
     "h5_five_to": 50,
     "h6_exact": 648,
-    "h6_five_past": 8,
+    "h6_five_past": 7,
     "h6_ten_past": 10,
     "h6_quarter_past": 54,
     "h6_twenty_past": 15,
@@ -241,7 +241,7 @@
     "h7_five_to": 52,
     "h8_exact": 777,
     "h8_five_past": 23,
-    "h8_ten_past": 16,
+    "h8_ten_past": 14,
     "h8_quarter_past": 40,
     "h8_twenty_past": 17,
     "h8_twenty_five_past": 9,
@@ -264,11 +264,11 @@
     "h9_ten_to": 19,
     "h9_five_to": 58,
     "h10_exact": 1027,
-    "h10_five_past": 25,
+    "h10_five_past": 24,
     "h10_ten_past": 14,
     "h10_quarter_past": 56,
     "h10_twenty_past": 18,
-    "h10_twenty_five_past": 11,
+    "h10_twenty_five_past": 10,
     "h10_half_past": 322,
     "h10_twenty_five_to": 11,
     "h10_twenty_to": 7,
@@ -277,7 +277,7 @@
     "h10_five_to": 51,
     "h11_exact": 740,
     "h11_five_past": 13,
-    "h11_ten_past": 13,
+    "h11_ten_past": 12,
     "h11_quarter_past": 49,
     "h11_twenty_past": 41,
     "h11_twenty_five_past": 6,
@@ -289,7 +289,7 @@
     "h11_five_to": 43,
     "h12_exact": 468,
     "h12_five_past": 13,
-    "h12_ten_past": 10,
+    "h12_ten_past": 9,
     "h12_quarter_past": 34,
     "h12_twenty_past": 6,
     "h12_twenty_five_past": 15,
@@ -464,10 +464,10 @@
     }
   ],
   "daypart_counts": {
-    "morning": 6953,
-    "night": 3886,
-    "dawn": 2121,
-    "noon": 953,
+    "morning": 6948,
+    "night": 3878,
+    "dawn": 2119,
+    "noon": 952,
     "midnight": 151,
     "evening": 80,
     "dusk": 70,
@@ -588,9 +588,9 @@
         "source_id": "155"
       },
       {
-        "quote_text": "It was twenty minutes to two.",
-        "matched_text": "twenty minutes to two",
-        "source_id": "174"
+        "quote_text": "\"You came in at twenty-five minutes past one.",
+        "matched_text": "twenty-five minutes past one",
+        "source_id": "18545"
       }
     ],
     "h1_half_past": [
@@ -719,14 +719,14 @@
         "source_id": "154"
       },
       {
-        "quote_text": "We had not gone two cable-lengths,",
-        "matched_text": "gone two",
-        "source_id": "164"
-      },
-      {
         "quote_text": "It was just after two o'clock in the morning when Private Hal Overton",
         "matched_text": "just after two o’clock",
         "source_id": "27680"
+      },
+      {
+        "quote_text": "It had gone two o'clock.",
+        "matched_text": "gone two",
+        "source_id": "32198"
       }
     ],
     "h2_ten_past": [
@@ -1915,11 +1915,6 @@
     ],
     "h8_ten_past": [
       {
-        "quote_text": "It was five minutes past eight.",
-        "matched_text": "five minutes past eight",
-        "source_id": "103"
-      },
-      {
         "quote_text": "It was ten past eight.",
         "matched_text": "ten past eight",
         "source_id": "217"
@@ -1928,6 +1923,11 @@
         "quote_text": "hands touched ten minutes past eight he made his way once more to the",
         "matched_text": "ten minutes past eight",
         "source_id": "22173"
+      },
+      {
+        "quote_text": "Let me see; it is now ten minutes after eight.",
+        "matched_text": "ten minutes after eight",
+        "source_id": "2454"
       }
     ],
     "h8_quarter_past": [
@@ -2374,11 +2374,6 @@
     ],
     "h10_twenty_five_past": [
       {
-        "quote_text": "At thirty-five minutes past ten, Captain Nemo quitted the helm, and,",
-        "matched_text": "thirty-five minutes past ten",
-        "source_id": "164"
-      },
-      {
         "quote_text": "It was twenty-five minutes past ten.",
         "matched_text": "twenty-five minutes past ten",
         "source_id": "34398"
@@ -2387,6 +2382,11 @@
         "quote_text": "\"At twenty-five minutes past ten,\" replied the clerk shortly.",
         "matched_text": "twenty-five minutes past ten",
         "source_id": "4745"
+      },
+      {
+        "quote_text": "“About twenty-five minutes after ten, monsieur.",
+        "matched_text": "twenty-five minutes after ten",
+        "source_id": "58866"
       }
     ],
     "h10_half_past": [
@@ -2527,11 +2527,6 @@
     ],
     "h11_ten_past": [
       {
-        "quote_text": "It was five minutes past eleven when I made my last entry.",
-        "matched_text": "five minutes past eleven",
-        "source_id": "126"
-      },
-      {
         "quote_text": "at ten past eleven.",
         "matched_text": "ten past eleven",
         "source_id": "4300"
@@ -2540,6 +2535,11 @@
         "quote_text": "“Ten past eleven,” he said.",
         "matched_text": "Ten past eleven",
         "source_id": "5308"
+      },
+      {
+        "quote_text": "out of the hotel, fully dressed, about ten minutes past eleven,",
+        "matched_text": "ten minutes past eleven",
+        "source_id": "61168"
       }
     ],
     "h11_quarter_past": [
@@ -2714,11 +2714,6 @@
     ],
     "h12_ten_past": [
       {
-        "quote_text": "ground at five minutes past twelve.",
-        "matched_text": "five minutes past twelve",
-        "source_id": "204"
-      },
-      {
         "quote_text": "was to take place at about eight minutes past twelve.",
         "matched_text": "eight minutes past twelve",
         "source_id": "711"
@@ -2727,6 +2722,11 @@
         "quote_text": "next does not arrive till ten minutes after twelve.",
         "matched_text": "ten minutes after twelve",
         "source_id": "103"
+      },
+      {
+        "quote_text": "You can come down at ten minutes after twelve.",
+        "matched_text": "ten minutes after twelve",
+        "source_id": "20127"
       }
     ],
     "h12_quarter_past": [

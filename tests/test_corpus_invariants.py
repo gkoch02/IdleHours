@@ -556,6 +556,81 @@ class TestDisplayHygiene:
         offenders = [_key(r) for r in displayable_baked_rows if r["display_quote"].startswith(("…", ".."))]
         assert not offenders, offenders[:10]
 
+    def test_dashes_are_typeset(self, displayable_baked_rows):
+        # Issue #467: "his watch,--twenty minutes to six", "_Enfin!___ You".
+        offenders = [_key(r) for r in displayable_baked_rows if "--" in r["display_quote"] or "___" in r["display_quote"]]
+        assert not offenders, offenders[:10]
+
+    def test_no_section_number_between_sentences(self, displayable_baked_rows):
+        # Issue #467: "…when he left the theatre. 5 By half-past six…", a section
+        # number on a line of its own that the excerpt ran across. "No. 7" and a
+        # compass bearing ("N. 64 W.") are not.
+        import re
+
+        pattern = re.compile(r"(?<![A-Z]\.)(?<!\bNo\.)(?<!\bLat\.)(?<=[.!?”’]) \d{1,3} (?=[A-Z“])")
+        offenders = [_key(r) for r in displayable_baked_rows if pattern.search(r["display_quote"])]
+        assert not offenders, offenders[:10]
+
+
+class TestAttribution:
+    """Issue #467: attributions are shown in little room."""
+
+    def test_titles_carry_no_subtitle(self, baked_rows):
+        import re
+
+        offenders = sorted({r["title"] for r in baked_rows if r.get("title") and re.search(r"[:;]\s|\)$", r["title"])})
+        assert not offenders, offenders[:10]
+
+    def test_authors_carry_no_catalogue_expansion(self, baked_rows):
+        offenders = sorted({r["author"] for r in baked_rows if "(" in (r.get("author") or "")})
+        assert not offenders, offenders[:10]
+
+
+class TestTimePhraseAgreesWithBucket:
+    """Issue #466: a phrase that names its time on its own ("twenty minutes to
+    two") sits in that time's bucket, whatever search found it."""
+
+    @staticmethod
+    def _offending(rows):
+        from idle_hours.gutenberg_time_miner import phrase_time
+
+        offenders = []
+        for r in rows:
+            parsed = phrase_time(r.get("matched_text") or "")
+            if parsed is None or not r.get("fuzzy_bucket"):
+                continue
+            expected = bucket_for_time(f"{parsed[0]:02d}:{parsed[1]:02d}")
+            if expected != r["fuzzy_bucket"]:
+                offenders.append((_key(r), r["matched_text"], r["fuzzy_bucket"]))
+        return offenders
+
+    def test_raw_corpus(self, corpus_rows):
+        offenders = self._offending(corpus_rows)
+        assert not offenders, offenders[:10]
+
+    def test_baked_database(self, baked_rows):
+        offenders = self._offending(baked_rows)
+        assert not offenders, offenders[:10]
+
+
+class TestGoneHourRowsPassTheMiner:
+    """Issue #466: every shipped "gone N" row is one the current miner still
+    takes for the clock, judged on the row's own context."""
+
+    def test_raw_corpus(self, corpus_rows):
+        from idle_hours import gutenberg_time_miner as miner
+
+        pattern = dict(miner.TIME_PATTERNS)["gone_hour"]
+        offenders = []
+        for r in corpus_rows:
+            if r.get("match_type") != "gone_hour":
+                continue
+            text = r.get("context_text") or ""
+            matches = [m for m in pattern.finditer(text) if " ".join(m.group(0).split()).lower() == r["matched_text"].lower()]
+            if not any(miner.candidate_from_match("", None, text, "gone_hour", m, 0) for m in matches):
+                offenders.append(_key(r))
+        assert not offenders, offenders
+
 
 class TestQuarterHalfSwallowedPhrases:
     """A row mined on "ten o'clock" inside "half-past ten o'clock" sat at the

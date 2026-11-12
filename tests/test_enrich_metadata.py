@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import json
 
-from idle_hours.enrich_metadata import clean_author, parse_header
+import pytest
+
+from idle_hours.enrich_metadata import clean_author, clean_title, parse_header
 
 
 class TestParseHeader:
@@ -100,6 +102,30 @@ class TestCleanAuthor:
 
     def test_fills_in_rowson_first_name(self):
         assert clean_author("Mrs. Rowson") == "Susanna Rowson"
+
+
+    def test_drops_the_catalogue_expansion_of_initials(self):
+        # Issue #467: one author, two spellings.
+        assert clean_author("H. C. (Herman Cyril) McNeile") == "H. C. McNeile"
+
+
+class TestCleanTitle:
+    @pytest.mark.parametrize("title, expected", [
+        ("Jane Eyre: An Autobiography", "Jane Eyre"),
+        ("The Manxman : a novel", "The Manxman"),
+        ("Frankenstein; or, the modern prometheus", "Frankenstein"),
+        ("From the Earth to the moon; and, round the moon", "From the Earth to the Moon"),
+        ('"Captains Courageous": A Story of the Grand Banks', "Captains Courageous"),
+        ("Three men in a boat (to say nothing of the dog)", "Three Men in a Boat"),
+        ("A Christmas Carol in Prose; Being a Ghost Story of Christmas", "A Christmas Carol"),
+        ("Moby Dick; Or, The Whale", "Moby-Dick"),
+        ("The Maltese falcon", "The Maltese Falcon"),
+        ("Tess of the d'Urbervilles: A Pure Woman", "Tess of the d'Urbervilles"),
+        ("Notre-Dame de Paris", "Notre-Dame de Paris"),
+        ("Pride and Prejudice", "Pride and Prejudice"),
+    ])
+    def test_spine_title(self, title, expected):
+        assert clean_title(title) == expected
 
 
 class TestMain:
