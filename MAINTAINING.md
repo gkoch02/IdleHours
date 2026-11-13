@@ -32,7 +32,7 @@ cd /var/lib/idle-hours
 ~/.virtualenvs/pimoroni/bin/idle-hours health --hours 24 --telemetry-path /var/lib/idle-hours/telemetry.jsonl
 ```
 
-This summarises the last day: how many times it redrew, how many errors, when it last drew. Roughly one render a minute while awake, and zero errors, is normal. Each screen refresh takes 20–30 seconds; that's the e-ink panel, not a fault.
+This summarises the last day: how many times it redrew, how many errors, when it last drew. It checks the time every minute (the heartbeats) but only redraws when the time moves into the next five-minute slot, and sometimes not even then, if the quote would be the same. So roughly one render every five minutes while awake (about 190 a day with quiet hours of 22:00–06:00) and zero errors is normal. Each screen refresh takes 20–30 seconds; that's the e-ink panel, not a fault.
 
 To watch what it's doing live (Ctrl-C to stop watching; the clock keeps running):
 
