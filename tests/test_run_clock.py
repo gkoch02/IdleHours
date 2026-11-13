@@ -5586,6 +5586,74 @@ class TestLegacyRenderScriptNote:
         assert 'render_script = "auto"' in capsys.readouterr().err
 
 
+class TestUnwritableSidecarNote:
+    """With ``overrides`` unset, bans go to the bundled copy, which the shipped
+    unit mounts read-only; startup says so instead of every ban failing later."""
+
+    @pytest.fixture
+    def readonly(self, monkeypatch):
+        """Make ``os.access`` report the given directories unwritable."""
+        denied: set[Path] = set()
+        real_access = os.access
+
+        def fake_access(path, mode, *a, **kw):
+            if mode & os.W_OK and Path(path) in denied:
+                return False
+            return real_access(path, mode, *a, **kw)
+
+        monkeypatch.setattr(run_clock.os, "access", fake_access)
+        return denied
+
+    def test_unset_overrides_in_a_readonly_package_is_noted(self, tmp_path, readonly, capsys):
+        readonly.add(Path(run_clock.pick_quote_module.DEFAULT_OVERRIDES_PATH).parent)
+        run_clock._warn_unwritable_sidecars(make_args(tmp_path))
+        err = capsys.readouterr().err
+        assert "quote bans will fail to save" in err and "content fixes will fail to save" in err
+        assert f'overrides = "{tmp_path / "selection_overrides.json"}"' in err
+        assert f'content_overrides = "{tmp_path / "content_overrides.json"}"' in err
+
+    def test_relocated_overrides_in_a_writable_dir_is_silent(self, tmp_path, readonly, capsys):
+        readonly.add(Path(run_clock.pick_quote_module.DEFAULT_OVERRIDES_PATH).parent)
+        args = make_args(
+            tmp_path,
+            overrides=str(tmp_path / "new" / "selection_overrides.json"),
+            content_overrides=str(tmp_path / "new" / "content_overrides.json"),
+        )
+        run_clock._warn_unwritable_sidecars(args)
+        assert capsys.readouterr().err == ""
+
+    def test_readonly_relocated_dir_is_noted(self, tmp_path, readonly, capsys):
+        """A directory that doesn't exist yet is judged by the nearest one that does."""
+        locked = tmp_path / "locked"
+        locked.mkdir()
+        readonly.add(locked)
+        args = make_args(tmp_path, overrides=str(locked / "sub" / "selection_overrides.json"))
+        run_clock._warn_unwritable_sidecars(args)
+        err = capsys.readouterr().err
+        assert f"{locked} is not writable" in err and "content fixes" not in err
+
+    def test_no_writable_suggestion_still_names_the_problem(self, tmp_path, readonly, monkeypatch, capsys):
+        monkeypatch.chdir(tmp_path)
+        readonly.update({Path(run_clock.pick_quote_module.DEFAULT_OVERRIDES_PATH).parent, tmp_path})
+        run_clock._warn_unwritable_sidecars(make_args(tmp_path))
+        assert "Set overrides to a writable path" in capsys.readouterr().err
+
+    def test_note_survives_skip_preflight(self, tmp_path, readonly, monkeypatch, capsys):
+        """--skip-preflight skips path checks, not this note."""
+        readonly.add(Path(run_clock.pick_quote_module.DEFAULT_OVERRIDES_PATH).parent)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "run_clock.py", "--once", "--skip-preflight", "--buttons-off",
+            "--output", str(tmp_path / "out.png"), "--state-path", str(tmp_path / "state.json"),
+            "--history-path", "", "--telemetry-path", "", "--pidfile", "",
+        ])
+        with patch("idle_hours.runtime_render.render_now"), \
+             patch("idle_hours.run_clock._install_signal_handlers"), \
+             patch("idle_hours.runtime_render.peek_quote_id", return_value=None):
+            run_clock.main()
+        assert "quote bans will fail to save" in capsys.readouterr().err
+
+
 class TestPreflightPaths:
     """Issue #53: startup must abort loudly when configured paths don't exist,
     so a typoed --display-script / --quiet-image in the systemd unit fails
