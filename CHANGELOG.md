@@ -9,6 +9,12 @@ canonical `vMAJOR.MINOR.PATCH` Git tags; the package version omits the leading
 Add release notes here as changes merge. The release preparation tool moves
 these entries under the new dated version heading.
 
+- At startup the clock warns in the log when it can't write the file quote
+  bans or content fixes are saved to, which is the case under the shipped
+  service when the config has no `overrides` / `content_overrides` line, and
+  names the line to add. Before, the problem showed only when a ban failed
+  (#473).
+
 ## [3.2.0] - 2026-11-12
 
 - A quote found by a targeted search now takes its time from its own

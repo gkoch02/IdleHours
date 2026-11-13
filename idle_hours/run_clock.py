@@ -1572,6 +1572,47 @@ def _warn_legacy_render_script(args: argparse.Namespace) -> None:
         )
 
 
+# The curation sidecars a ban or a content fix writes, with the default used
+# when the config leaves the key unset.
+_CURATION_SIDECARS: tuple[tuple[str, Path], ...] = (
+    ("overrides", Path(pick_quote_module.DEFAULT_OVERRIDES_PATH)),
+    ("content_overrides", apply_content_overrides.DEFAULT_OVERRIDES_PATH),
+)
+
+
+def _warn_unwritable_sidecars(args: argparse.Namespace) -> None:
+    """Note at startup each curation sidecar this process cannot write.
+
+    With ``overrides`` unset the bans go to the bundled copy inside the
+    package, which the shipped unit mounts read-only, so every ban would fail
+    at the moment it is made. Rendering is unaffected, so this is a note, not
+    an error, and like ``_warn_legacy_render_script`` it runs even under
+    ``--skip-preflight``. A write goes through ``atomic_io`` (a temp sibling,
+    then ``os.replace``), so what must be writable is the directory: the
+    nearest one that exists, since a relocated path's directory is created on
+    first use.
+    """
+    # Suggest the state file's directory, or else the working directory (the
+    # shipped unit's state dir): the first of them this process can write.
+    state_dir = Path(args.state_path or DEFAULT_STATE_PATH).expanduser().absolute().parent
+    home = next((d for d in (state_dir, Path.cwd()) if os.access(d, os.W_OK | os.X_OK)), None)
+    for attr, default in _CURATION_SIDECARS:
+        path = Path(getattr(args, attr) or default).expanduser()
+        directory = path.parent
+        while not directory.exists() and directory != directory.parent:
+            directory = directory.parent
+        if os.access(directory, os.W_OK | os.X_OK):
+            continue
+        what = "quote bans" if attr == "overrides" else "content fixes"
+        fix = f'{attr} = "{home / default.name}"' if home is not None else f"{attr} to a writable path"
+        _log(
+            f"{attr} {str(path)!r}: {directory} is not writable by this process, so {what} "
+            f"will fail to save. Set {fix} in the config; the shipped file is copied "
+            "across on the next start.",
+            err=True,
+        )
+
+
 def _run_preflight(args: argparse.Namespace) -> None:
     """Abort loudly when any configured script / image path is missing.
 
@@ -1639,6 +1680,8 @@ def main() -> int:
 
     _warn_legacy_render_script(args)
     _run_preflight(args)
+    # After preflight, which creates a relocated sidecar's directory by seeding it.
+    _warn_unwritable_sidecars(args)
 
     if args.once:
         _refresh_corpus_once_locked(args)
