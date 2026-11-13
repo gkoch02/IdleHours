@@ -378,6 +378,8 @@ docker run --rm -p 8080:8080 -v idle-hours-state:/state idle-hours:3.2 idle-hour
 
 ## When something breaks
 
+Looking after a panel without editing code (health checks, settings, updates and rollbacks, backups, rebuilding a Pi) is covered step by step in [`MAINTAINING.md`](MAINTAINING.md), and [`docs/CODE_TOUR.md`](docs/CODE_TOUR.md) walks through how the code fits together. For the code itself:
+
 - quote selection → `idle_hours/pick_quote.py`; the curator UI's bucket inspector shows every scorer component
 - highlight, layout or render → the `idle_hours/render_quote/` package
 - loop, refresh or service behaviour → `idle_hours/run_clock.py` and the `runtime_*` modules

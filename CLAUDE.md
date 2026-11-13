@@ -21,6 +21,8 @@ Every stage is a standalone Python 3 CLI script that reads/writes JSONL. The min
 | Test suite, fences, CI jobs | [`docs/testing.md`](docs/testing.md) |
 | Dev setup, contribution workflow, releases | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
 | Pi hardware and OS setup | [`docs/pi_setup_inky_impression.md`](docs/pi_setup_inky_impression.md) |
+| Newcomer's walkthrough of one quote from loop to panel; names functions, so update it when you rename or move one | [`docs/CODE_TOUR.md`](docs/CODE_TOUR.md) |
+| Running a panel day to day (settings, updates, backups, rebuilds) | [`MAINTAINING.md`](MAINTAINING.md) |
 
 **Single-source, don't fence.** When two Python modules need the same list or constant, import it from one place (`theme_names.THEME_ORDER`, `pick_quote.BAKED_SCORE_COMPONENTS`). A sync test is for copies that *must* exist outside Python (README rosters, `config.toml.*`, docs tables); it is not a substitute for an import. If an import would drag in a heavy dependency, move the constant down to a lighter module rather than copying it (issue #394). A test's own hand-written expected values are not copies in this sense: they are the independent oracle (`CUSTOM_FRAME_THEMES`, the literals pinning `recent_window_size`), and reading the expectation back from the code under test makes the test unable to fail (issue #392).
 
