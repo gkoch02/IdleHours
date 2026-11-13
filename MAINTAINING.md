@@ -47,9 +47,12 @@ All the everyday choices live in one file. The recipe is always the same:
 ```bash
 sudo cp /var/lib/idle-hours/config.toml /var/lib/idle-hours/config.toml.bak-$(date +%Y%m%d)   # 1. back it up
 sudoedit /var/lib/idle-hours/config.toml                                                        # 2. edit
-sudo systemctl restart idle-hours                                                               # 3. restart
-systemctl status --no-pager idle-hours                                                          # 4. check
+~/.virtualenvs/pimoroni/bin/python -c 'import tomllib; tomllib.load(open("/var/lib/idle-hours/config.toml", "rb")); print("config OK")'   # 3. check it
+sudo systemctl restart idle-hours                                                               # 4. restart
+systemctl status --no-pager idle-hours                                                          # 5. check it's running
 ```
+
+Step 3 prints `config OK`, or an error naming the line that's broken. Don't restart until it says OK (see "If you make a typo" below for why).
 
 The settings you're most likely to want:
 
@@ -65,7 +68,10 @@ The settings you're most likely to want:
 
 Rules for the file: text goes in "double quotes", `true`/`false` and numbers don't, and a line starting with `#` is ignored. For the list of theme names, run `~/.virtualenvs/pimoroni/bin/idle-hours render --help` and look at `--theme`. `idle_hours/assets/config.toml.defaults` in the repo lists every setting with a comment.
 
-**If you make a typo**, the clock doesn't crash: it ignores the bad line and logs a warning. So if a change seems to have no effect, look in the log for the word `config`:
+**If you make a typo**, what happens depends on the kind:
+
+- **A broken file** (a missing closing quote, a stray character): the clock can't read any of it, so it throws the whole file away and starts with its built-in defaults. Those don't know where the screen driver is or where your settings and bans live, so the panel stops updating. Step 3 catches this before it happens; if it's already happened, restore your backup (below).
+- **A readable file with one bad setting** (a misspelled name, a theme that doesn't exist, a time like `25:00`): the clock ignores just that setting, keeps the rest, and logs a warning. So if a change seems to have no effect, look in the log for the word `config`:
 
 ```bash
 journalctl -u idle-hours --since "10 minutes ago" | grep -i config
@@ -100,7 +106,13 @@ The bans are written to a file called `selection_overrides.json`. Where that fil
 - `overrides = "/var/lib/idle-hours/selection_overrides.json"`: good. Your bans live beside your settings, updates never touch them, and the backup below includes them.
 - No `overrides` line: the bans are meant to go into the copy inside `~/IdleHours`, the code folder, but the service is locked out of writing to your home folder, so holding B fails (the log shows a "read-only file system" error). Fix it once by adding the line above, and `content_overrides = "/var/lib/idle-hours/content_overrides.json"` under it, to your config (see "Changing settings"), then restart. On that start the clock copies the shipped files across, so nothing is lost. The shipped `config.toml.example` already has both lines; configs made from `config.toml.defaults` don't.
 
-For anything more (looking up a quote, lifting theme bans, browsing what it's shown this week), there's a web page on the Pi. It only listens to the Pi itself, so reach it through an SSH tunnel from your Mac:
+For anything more (looking up a quote, lifting theme bans, browsing what it's shown this week), there's a web page on the Pi. It's off unless your config has this line, so add it first if it's missing (see "Changing settings"):
+
+```toml
+web_bind = "127.0.0.1:8080"
+```
+
+It only listens to the Pi itself, so reach it through an SSH tunnel from your Mac:
 
 ```bash
 ssh -L 8080:127.0.0.1:8080 pi@<the Pi>
@@ -186,7 +198,31 @@ For a dead SD card or a new Pi. Allow an hour.
 
    It ends by drawing a test quote on the panel. If it does, the hard part works.
 
-4. Install the service and put your settings back. The script prints these steps at the end; they're also under "Install the service" in `README.md`. Use your backed-up `config.toml` instead of the example one, and copy your `photos` folder back to `/var/lib/idle-hours/` if your config points at one.
+4. Put your backup back before the service first starts, so it finds your settings, bans and history instead of seeding fresh ones. On the Pi:
+
+   ```bash
+   sudo install -d -o pi -g pi -m 0750 /var/lib/idle-hours
+   ```
+
+   Then from the Mac:
+
+   ```bash
+   rsync -a ~/Backups/idle-hours/ 'pi@<the Pi>:/var/lib/idle-hours/'
+   ```
+
+   That restores everything the backup holds (settings, theme bans, history, quote bans and fixes, photos), owned by `pi` as the service expects.
+
+5. Install the service and start it, back on the Pi:
+
+   ```bash
+   cd ~/IdleHours
+   sudo cp ops/idle-hours.service.example /etc/systemd/system/idle-hours.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now idle-hours
+   systemctl status --no-pager idle-hours
+   ```
+
+   Skip the "copy the example config" step that `README.md` and the bootstrap script mention: your restored `config.toml` replaces it.
 
 `docs/pi_setup_inky_impression.md` has the long version, including what to check when the panel stays blank.
 
