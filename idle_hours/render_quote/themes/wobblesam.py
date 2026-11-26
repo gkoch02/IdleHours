@@ -87,9 +87,9 @@ def _wobblesam_word_width(draw, word, size: int) -> float:
     return sum(draw.textlength(piece, font=bold if b else regular) for piece, b in word)
 
 
-def _wobblesam_pitch(size: int, index: int) -> float:
+def _wobblesam_pitch(size: int, index: int, *, bars: bool = True) -> float:
     """Height a row of ``size`` px takes as chart line ``index``."""
-    return size * _WOBBLESAM_ROW_LEAD + (_WOBBLESAM_BAR_GAP if _wobblesam_bar(index) else 0)
+    return size * _WOBBLESAM_ROW_LEAD + (_WOBBLESAM_BAR_GAP if bars and _wobblesam_bar(index) else 0)
 
 
 def _wobblesam_descend(draw, words, first: int, height: int, first_index: int):
@@ -159,15 +159,16 @@ def _wobblesam_bar(index: int) -> str | None:
     return _WOBBLESAM_BARS.get(_wobblesam_label(index))
 
 
-def _wobblesam_paint_margin(draw: ImageDraw.ImageDraw, index: int, baseline: int, mid: int) -> None:
+def _wobblesam_paint_margin(draw: ImageDraw.ImageDraw, index: int, baseline: int, mid: int, *, bars: bool = True) -> None:
     """A line's acuity fraction on the left, its number on the right, and the
-    chart's green / red bar under the 20/40 and 20/20 lines."""
+    chart's green / red bar under the 20/40 and 20/20 lines unless ``bars``
+    is off."""
     font = _wobblesam_font(_WOBBLESAM_LABEL_SIZE)
     label = _wobblesam_label(index)
     if label:
         draw.text((_WOBBLESAM_LABEL_X, mid), label, font=font, fill=SPECTRA6["black"], anchor="lm")
     draw.text((_WOBBLESAM_NUMBER_X, mid), str(index + 1), font=font, fill=SPECTRA6["black"], anchor="rm")
-    bar = _wobblesam_bar(index)
+    bar = _wobblesam_bar(index) if bars else None
     if bar:
         draw.rectangle((_WOBBLESAM_LABEL_X, baseline + 6, _WOBBLESAM_NUMBER_X, baseline + 8), fill=SPECTRA6[bar])
 
@@ -189,16 +190,17 @@ def _wobblesam_paint_top(draw: ImageDraw.ImageDraw, font, lines: list[str], top:
         y = baseline + descent + 8
 
 
-def _wobblesam_rows_spread(rows, first_index: int, height: float) -> tuple[float, float]:
+def _wobblesam_rows_spread(rows, first_index: int, height: float, *, bars: bool = True) -> tuple[float, float]:
     """``(spread, total)``: the extra gap per row that shares out the height
     left in ``height`` (capped, so a short chart does not float apart), and
     the rows' total height with it."""
-    used = sum(_wobblesam_pitch(size, first_index + n) for n, (size, _w) in enumerate(rows))
+    used = sum(_wobblesam_pitch(size, first_index + n, bars=bars) for n, (size, _w) in enumerate(rows))
     spread = min(_WOBBLESAM_MAX_SPREAD, max(0.0, (height - used) / max(1, len(rows))))
     return spread, used + spread * len(rows)
 
 
-def _wobblesam_paint_rows(draw: ImageDraw.ImageDraw, rows, top: float, first_index: int, spread: float) -> None:
+def _wobblesam_paint_rows(draw: ImageDraw.ImageDraw, rows, top: float, first_index: int, spread: float,
+                          *, bars: bool = True) -> None:
     """The descending rows, centred, the phrase's own words in Bold, each gap
     widened by ``spread``."""
     cx = sum(_WOBBLESAM_ROWS_X) // 2
@@ -214,8 +216,8 @@ def _wobblesam_paint_rows(draw: ImageDraw.ImageDraw, rows, top: float, first_ind
                 draw.text((x, baseline), piece, font=bold if b else regular, fill=SPECTRA6["black"], anchor="ls")
                 x += draw.textlength(piece, font=bold if b else regular)
             x += space
-        _wobblesam_paint_margin(draw, first_index + n, baseline, baseline - _font_ascent(regular) // 3)
-        y += _wobblesam_pitch(size, first_index + n) + spread
+        _wobblesam_paint_margin(draw, first_index + n, baseline, baseline - _font_ascent(regular) // 3, bars=bars)
+        y += _wobblesam_pitch(size, first_index + n, bars=bars) + spread
 
 
 def _wobblesam_paint_byline(draw: ImageDraw.ImageDraw, quote_row: dict) -> None:
@@ -275,7 +277,8 @@ def render_wobblesam_frame(time_str: str, quote_row: dict, width: int, height: i
 
 def render_wobblesam_sleep(time_str: str, width: int, height: int) -> Image.Image:
     """The quiet-hours frame: the chart read in z's, a big "Z" on top and a
-    longer, smaller row of z's on every line down. ``time_str`` is unused."""
+    longer, smaller row of z's on every line down, with no green / red bars
+    (the short chart would show only the green one). ``time_str`` is unused."""
     del time_str
     image = Image.new("RGB", (800, 480), SPECTRA6["white"])
     draw = ImageDraw.Draw(image)
@@ -286,8 +289,8 @@ def render_wobblesam_sleep(time_str: str, width: int, height: int) -> Image.Imag
     first = int(_WOBBLESAM_TOP_MAX * _WOBBLESAM_ROW_RATIO * 0.8)
     rows = [(max(_WOBBLESAM_ROW_FLOOR, round(first * _WOBBLESAM_ROW_RATIO ** n)), [[(row, True)]])
             for n, row in enumerate(_WOBBLESAM_SLEEP_ROWS[1:])]
-    spread, _h = _wobblesam_rows_spread(rows, 1, _WOBBLESAM_BOTTOM + 30 - y)
-    _wobblesam_paint_rows(draw, rows, y, 1, spread)
+    spread, _h = _wobblesam_rows_spread(rows, 1, _WOBBLESAM_BOTTOM + 30 - y, bars=False)
+    _wobblesam_paint_rows(draw, rows, y, 1, spread, bars=False)
     return _wobblesam_finish(image, width, height)
 
 

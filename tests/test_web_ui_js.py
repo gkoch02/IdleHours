@@ -44,7 +44,7 @@ def _test_files() -> list[str]:
 
 def _run_node_suite() -> subprocess.CompletedProcess:
     return subprocess.run(
-        [NODE, "--test", *_test_files()],
+        [NODE, "--test", "--test-reporter=tap", *_test_files()],
         capture_output=True,
         text=True,
         timeout=120,
