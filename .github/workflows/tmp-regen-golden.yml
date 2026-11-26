@@ -1,0 +1,22 @@
+name: tmp-regen-golden
+on:
+  push:
+    branches: [wobblesam-sleep-no-bars]
+permissions:
+  contents: read
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - run: UPDATE_RENDER_GOLDEN=1 pytest tests/test_render_golden.py -k sleep_wobblesam
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden
+          path: tests/golden/renderer/sleep_wobblesam.png
