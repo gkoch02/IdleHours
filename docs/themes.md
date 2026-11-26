@@ -1557,7 +1557,7 @@ Imports `pick_quote` in-process (`pick_quote_module.select_quote`) and lays out 
 
     **Margins.** Each line carries its Snellen fraction on the left (20/200, 20/100 … 20/10, by line number, not by measured size) and its line number on the right; lines past the last fraction keep their number only. A green bar runs under the 20/40 line and a red one under 20/20, as on a printed chart, with 8 px of extra lead so the next row clears it; a short quote never reaches either. Everything else is solid black: the margins are in Wobblesam Regular at 15 px, sturdy enough after the palette snap.
 
-    **Sleep frame.** `render_wobblesam_sleep`: the same card read in z's, a Bold "Z" as the top line and a longer, smaller row of z's on every line down. The face's own z has eyes.
+    **Sleep frame.** `render_wobblesam_sleep`: the same card read in z's, a Bold "Z" as the top line and a longer, smaller row of z's on every line down. It carries no green or red bar: with six lines it would reach only the green one, which reads as a stray rule. The face's own z has eyes.
 
     **Glyphs.** The face is a beta (0.100) with no accented letters and none of ``# $ % & + < = > @ [ \ ] ^ _ ` { | } ~``. `fonts.GLYPH_FALLBACKS` folds Latin-1 / Latin Extended-A letters to their base letter (é → e), maps `[ ]` → `( )`, `&` → `and` (the corpus uses it only in firm names), the backtick → `'`, `•` → `*` and `æ œ ß ø` to ASCII. As for every fallback, only a theme whose faces lack the character is rewritten, so the other themes are unchanged. About 20 baked rows still carry a mark with no fair stand-in (`£ ° $ ½ ¼`, and two rows of scan debris in `< >` / `{ }`), which draw `.notdef`. The byline does not use `fallback_title`, whose `#` is built after the row-level fallbacks run.
 

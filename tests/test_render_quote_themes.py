@@ -9888,6 +9888,10 @@ class TestWobblesamFrame:
         assert pixel_bytes(sleep) == pixel_bytes(rq.render_sleep_frame("04:10", 800, 480, theme=self.THEME))
         assert pixel_bytes(sleep) != pixel_bytes(self._render())
 
+    def test_sleep_frame_has_no_bars(self):
+        sleep = ink_counts(rq.render_sleep_frame("23:00", 800, 480, theme=self.THEME))
+        assert sleep.get(rq.SPECTRA6["green"], 0) == sleep.get(rq.SPECTRA6["red"], 0) == 0
+
 
 class TestPinballFrame:
     """``pinball`` — an early-80s pinball backbox in RetroChunki: the book as
